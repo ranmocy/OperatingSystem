@@ -7,12 +7,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <math.h>
 
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <errno.h>
 
 #include "measure.h"
+
+#ifndef NPROCS_MAX
+#define NPROCS_MAX 128
+#define NPROCS_MAX_LENGTH 3
+#define TMP_FILE_NAME_LENGTH NPROCS_MAX_LENGTH + 4 // id.tmp
+#endif
+
+#ifndef RESULT_LENGTH_MAX
+#define RESULT_LENGTH_MAX 21 // ceil(log10(2^32))*2+1 = 21 // two strings of ints and a space
+#endif
 
 /* a struct used to pass results to caller */
 struct results {
@@ -59,6 +70,30 @@ int* generate_random_array(int seed, int size)
     return array;
 }
 
+void write_result(int id, struct results r)
+{
+    char filename[TMP_FILE_NAME_LENGTH];
+    sprintf(filename, "%d.tmp", id);
+    FILE *f = fopen(filename, "w");
+
+    char result[RESULT_LENGTH_MAX];
+    sprintf(result, "%d %d\n", r.min, r.max);
+    fputs(result, f);
+
+    fclose(f);
+}
+
+void clean_tmp_files(int nprocs)
+{
+    for (int i = 0; i < nprocs; ++i) {
+        char filename[TMP_FILE_NAME_LENGTH];
+        sprintf(filename, "%d.tmp", i);
+
+        remove(filename);
+    }
+}
+
+
 int main(int argc, char **argv)
 {
     int *array;
@@ -99,16 +134,16 @@ int main(int argc, char **argv)
 
             int span = arraysize / nprocs;
             int low = i * span;
-            if (i == nprocs - 1) {
-                span = arraysize - low;
+            if (i == nprocs - 1) { // if it's the last one
+                span = arraysize - low; // deal with all remains
             }
 
             printf("DEBUG: child %d run on array[%d] with span %d\n", i, low, span);
             r = find_min_and_max(&array[low], span);
 
-            // TODO: write the result to files
+            write_result(i, r);
 
-            printf("DEBUG: child %d ends.\n", i);
+            printf("DEBUG: child %d ends with result: %d, %d.\n", i, r.min, r.max);
             return 0;
         }
 
@@ -123,6 +158,9 @@ int main(int argc, char **argv)
     }
     printf("DEBUG: children all done\n");
 
+    // TODO: Find the min, max of all results
+
+
     mtf_measure_end();
 
     // Finishing
@@ -132,6 +170,7 @@ int main(int argc, char **argv)
     printf("min = %d, max = %d\n", r.min, r.max);
 
     free(array);
+    clean_tmp_files(nprocs);
 
     return 0;
 }
