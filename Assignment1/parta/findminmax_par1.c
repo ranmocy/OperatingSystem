@@ -114,7 +114,7 @@ struct results find_min_and_max_in_all(int nprocs)
         struct results r = read_result(i);
         min[i] = r.min;
         max[i] = r.max;
-        printf("DEBUG: final: child %d result: %d, %d\n", i, r.min, r.max);
+        // printf("DEBUG: final: child %d result: %d, %d\n", i, r.min, r.max);
     }
 
     // find the final result
@@ -128,7 +128,7 @@ struct results find_min_and_max_in_all(int nprocs)
         }
     }
 
-    printf("DEBUG: final result: %d, %d\n", r.min, r.max);
+    // printf("DEBUG: final result: %d, %d\n", r.min, r.max);
     return r;
 }
 
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 
         // If it's child
         if (childPID == 0) {
-            printf("DEBUG: child %d begins.\n", i);
+            // printf("DEBUG: child %d begins.\n", i);
 
             int span = arraysize / nprocs;
             int low = i * span;
@@ -177,25 +177,25 @@ int main(int argc, char **argv)
                 span = arraysize - low; // deal with all remains
             }
 
-            printf("DEBUG: child %d run on array[%d] with span %d\n", i, low, span);
+            // printf("DEBUG: child %d run on array[%d] with span %d\n", i, low, span);
             r = find_min_and_max(&array[low], span);
 
             write_result(i, r);
 
-            printf("DEBUG: child %d ends with result: %d, %d.\n", i, r.min, r.max);
+            // printf("DEBUG: child %d ends with result: %d, %d.\n", i, r.min, r.max);
             return 0;
         }
 
     }
 
     // Wait for all children to finish
-    printf("DEBUG: waiting for children\n");
+    // printf("DEBUG: waiting for children\n");
     while ((childPID = waitpid(-1, NULL, 0))) {
        if (errno == ECHILD) {
           break;
        }
     }
-    printf("DEBUG: children all done\n");
+    // printf("DEBUG: children all done\n");
 
     // Find the min, max of all results
     r = find_min_and_max_in_all(nprocs);
