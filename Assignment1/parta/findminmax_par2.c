@@ -106,18 +106,8 @@ struct results find_min_and_max(int *subarray, int n)
     return r;
 }
 
-struct results find_min_and_max_in_all(int nprocs)
+struct results find_min_and_max_in_all(int *min, int *max, int nprocs)
 {
-    // read results
-    int min[nprocs], max[nprocs];
-    for (int i = 0; i < nprocs; ++i) {
-        struct results r = read_result(i);
-        min[i] = r.min;
-        max[i] = r.max;
-        // printf("DEBUG: final: child %d result: %d, %d\n", i, r.min, r.max);
-    }
-
-    // find the final result
     struct results r = {min[0], max[0]};
     for (int i = 1; i < nprocs; ++i) {
         if (min[i] < r.min) {
@@ -140,6 +130,7 @@ int main(int argc, char **argv)
     int seed;
     int nprocs;
     int childPID;
+    int fd[2]; // for pipe()
     struct results r;
 
     // process command line arguments
@@ -153,11 +144,14 @@ int main(int argc, char **argv)
 
     // Init
     array = generate_random_array(seed, arraysize);
+    int min[nprocs], max[nprocs];
 
     // begin computation
     mtf_measure_begin();
 
     for (int i = 0; i < nprocs; ++i) {
+
+        pipe(fd);
 
         childPID = fork();
 
@@ -180,10 +174,19 @@ int main(int argc, char **argv)
             // printf("DEBUG: child %d run on array[%d] with span %d\n", i, low, span);
             r = find_min_and_max(&array[low], span);
 
-            write_result(i, r);
+            write(fd[1], &r, sizeof(r));
+
+            close(fd[0]);
+            close(fd[1]);
 
             // printf("DEBUG: child %d ends with result: %d, %d.\n", i, r.min, r.max);
             exit(0);
+        } else { // if it's parent
+            read(fd[0], &min[i], sizeof(min[i]));
+            read(fd[0], &max[i], sizeof(max[i]));
+
+            close(fd[0]);
+            close(fd[1]);
         }
 
     }
@@ -198,7 +201,7 @@ int main(int argc, char **argv)
     // printf("DEBUG: children all done\n");
 
     // Find the min, max of all results
-    r = find_min_and_max_in_all(nprocs);
+    r = find_min_and_max_in_all(min, max, nprocs);
 
     mtf_measure_end();
 
