@@ -163,8 +163,8 @@ int main(int argc, char **argv)
 
         // If fork failed, exit
         if (childPID < 0) {
-            printf("Fork failed, exit!\n");
-            return 1;
+            perror("Fork failed, exit!\n");
+            exit(1);
         }
 
         // If it's child
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
             write_result(i, r);
 
             // printf("DEBUG: child %d ends with result: %d, %d.\n", i, r.min, r.max);
-            return 0;
+            exit(0);
         }
 
     }
