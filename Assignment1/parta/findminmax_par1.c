@@ -1,4 +1,5 @@
 /* findminmax_par1.c - find the min and max values in a random array
+ * Comunication via files.
  *
  * usage: ./findminmax <seed> <arraysize> <nprocs>
  *
@@ -35,14 +36,30 @@ struct results find_min_and_max(int *subarray, int n)
     return r;
 }
 
+int* generate_random_array(int seed, int size)
+{
+    int *array;
+    char randomstate[8];
+    int i;
+
+    /* allocate array and populate with random values */
+    array = (int *) malloc(sizeof(int) * size);
+
+    initstate(seed, randomstate, 8);
+
+    for (i = 0; i < size; i++) {
+        array[i] = random();
+    }
+
+    return array;
+}
+
 int main(int argc, char **argv)
 {
     int *array;
     int arraysize = 0;
     int seed;
-    char randomstate[8];
     struct results r;
-    int i;
 
     /* process command line arguments */
     if (argc != 3) {
@@ -52,15 +69,7 @@ int main(int argc, char **argv)
 
     seed = atoi(argv[1]);
     arraysize = atoi(argv[2]);
-
-    /* allocate array and populate with random values */
-    array = (int *) malloc(sizeof(int) * arraysize);
-
-    initstate(seed, randomstate, 8);
-
-    for (i = 0; i < arraysize; i++) {
-        array[i] = random();
-    }
+    array = generate_random_array(seed, arraysize);
 
     /* begin computation */
 
@@ -74,6 +83,8 @@ int main(int argc, char **argv)
     mtf_measure_print_seconds(1);
 
     printf("min = %d, max = %d\n", r.min, r.max);
+
+    free(array);
 
     return 0;
 }

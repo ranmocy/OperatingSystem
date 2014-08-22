@@ -1,4 +1,5 @@
 /* findminmax_par1.c - find the min and max values in a random array
+ * Comunication via pipes.
  *
  * usage: ./findminmax <seed> <arraysize> <nprocs>
  *
