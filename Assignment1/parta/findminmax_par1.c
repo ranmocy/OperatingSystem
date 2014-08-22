@@ -7,6 +7,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <errno.h>
+
 #include "measure.h"
 
 /* a struct used to pass results to caller */
@@ -59,26 +64,68 @@ int main(int argc, char **argv)
     int *array;
     int arraysize = 0;
     int seed;
+    int nprocs;
+    int childPID;
     struct results r;
 
-    /* process command line arguments */
-    if (argc != 3) {
-        printf("usage: ./findminmax <seed> <arraysize>\n");
+    // process command line arguments
+    if (argc != 4) {
+        printf("usage: ./findminmax <seed> <arraysize> <nprocs>\n");
         return 1;
     }
-
     seed = atoi(argv[1]);
     arraysize = atoi(argv[2]);
+    nprocs = atoi(argv[3]);
+
+    // Init
     array = generate_random_array(seed, arraysize);
 
-    /* begin computation */
-
+    // begin computation
     mtf_measure_begin();
 
-    r = find_min_and_max(array, arraysize);
+    for (int i = 0; i < nprocs; ++i) {
+
+        childPID = fork();
+
+        // If fork failed, exit
+        if (childPID < 0) {
+            printf("Fork failed, exit!\n");
+            return 1;
+        }
+
+        // If it's child
+        if (childPID == 0) {
+            printf("DEBUG: child %d begins.\n", i);
+
+            int span = arraysize / nprocs;
+            int low = i * span;
+            if (i == nprocs - 1) {
+                span = arraysize - low;
+            }
+
+            printf("DEBUG: child %d run on array[%d] with span %d\n", i, low, span);
+            r = find_min_and_max(&array[low], span);
+
+            // TODO: write the result to files
+
+            printf("DEBUG: child %d ends.\n", i);
+            return 0;
+        }
+
+    }
+
+    // Wait for all children to finish
+    printf("DEBUG: waiting for children\n");
+    while ((childPID = waitpid(-1, NULL, 0))) {
+       if (errno == ECHILD) {
+          break;
+       }
+    }
+    printf("DEBUG: children all done\n");
 
     mtf_measure_end();
 
+    // Finishing
     printf("Execution time: ");
     mtf_measure_print_seconds(1);
 
