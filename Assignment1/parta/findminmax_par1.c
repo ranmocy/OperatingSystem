@@ -31,27 +31,6 @@ struct results {
     int max;
 };
 
-/* given an array of ints and the size of array, find min and max values */
-struct results find_min_and_max(int *subarray, int n)
-{
-    int i, min, max;
-    min = max = subarray[0];
-    struct results r;
-
-    for (i = 1; i < n; i++) {
-        if (subarray[i] < min) {
-            min = subarray[i];
-        }
-        if (subarray[i] > max) {
-            max = subarray[i];
-        }
-    }
-
-    r.min = min;
-    r.max = max;
-    return r;
-}
-
 int* generate_random_array(int seed, int size)
 {
     int *array;
@@ -83,6 +62,19 @@ void write_result(int id, struct results r)
     fclose(f);
 }
 
+struct results read_result(int id)
+{
+    char filename[TMP_FILE_NAME_LENGTH];
+    sprintf(filename, "%d.tmp", id);
+
+    struct results r;
+    FILE *f = fopen(filename, "r");
+    fscanf(f, "%d %d", &r.min, &r.max);
+    fclose(f);
+
+    return r;
+}
+
 void clean_tmp_files(int nprocs)
 {
     for (int i = 0; i < nprocs; ++i) {
@@ -91,6 +83,53 @@ void clean_tmp_files(int nprocs)
 
         remove(filename);
     }
+}
+
+/* given an array of ints and the size of array, find min and max values */
+struct results find_min_and_max(int *subarray, int n)
+{
+    int i, min, max;
+    min = max = subarray[0];
+    struct results r;
+
+    for (i = 1; i < n; i++) {
+        if (subarray[i] < min) {
+            min = subarray[i];
+        }
+        if (subarray[i] > max) {
+            max = subarray[i];
+        }
+    }
+
+    r.min = min;
+    r.max = max;
+    return r;
+}
+
+struct results find_min_and_max_in_all(int nprocs)
+{
+    // read results
+    int min[nprocs], max[nprocs];
+    for (int i = 0; i < nprocs; ++i) {
+        struct results r = read_result(i);
+        min[i] = r.min;
+        max[i] = r.max;
+        printf("DEBUG: final: child %d result: %d, %d\n", i, r.min, r.max);
+    }
+
+    // find the final result
+    struct results r = {min[0], max[0]};
+    for (int i = 1; i < nprocs; ++i) {
+        if (min[i] < r.min) {
+            r.min = min[i];
+        }
+        if (max[i] > r.max) {
+            r.max = max[i];
+        }
+    }
+
+    printf("DEBUG: final result: %d, %d\n", r.min, r.max);
+    return r;
 }
 
 
@@ -158,8 +197,8 @@ int main(int argc, char **argv)
     }
     printf("DEBUG: children all done\n");
 
-    // TODO: Find the min, max of all results
-
+    // Find the min, max of all results
+    r = find_min_and_max_in_all(nprocs);
 
     mtf_measure_end();
 
