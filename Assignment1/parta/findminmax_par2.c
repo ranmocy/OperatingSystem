@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 
     // Init
     array = generate_random_array(seed, arraysize);
-    int min[nprocs], max[nprocs];
+    int min[nprocs], max[nprocs], fd_read[nprocs];
 
     // begin computation
     mtf_measure_begin();
@@ -180,12 +180,10 @@ int main(int argc, char **argv)
             close(fd[1]);
 
             // printf("DEBUG: child %d ends with result: %d, %d.\n", i, r.min, r.max);
+            fflush(stdout);
             exit(0);
         } else { // if it's parent
-            read(fd[0], &min[i], sizeof(min[i]));
-            read(fd[0], &max[i], sizeof(max[i]));
-
-            close(fd[0]);
+            fd_read[i] = fd[0];
             close(fd[1]);
         }
 
@@ -201,6 +199,11 @@ int main(int argc, char **argv)
     // printf("DEBUG: children all done\n");
 
     // Find the min, max of all results
+    for (int i = 0; i < nprocs; ++i) {
+        read(fd_read[i], &min[i], sizeof(min[i]));
+        read(fd_read[i], &max[i], sizeof(max[i]));
+        close(fd_read[i]);
+    }
     r = find_min_and_max_in_all(min, max, nprocs);
 
     mtf_measure_end();
