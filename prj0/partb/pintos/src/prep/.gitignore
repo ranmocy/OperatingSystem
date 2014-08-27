@@ -1,0 +1,4 @@
+*.dSYM
+listordered
+listtest
+test_mem
