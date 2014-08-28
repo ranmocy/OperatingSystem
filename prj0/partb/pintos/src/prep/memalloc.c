@@ -47,8 +47,7 @@ void union_block(struct free_block *current)
 
 
 
-/* Initialize memory allocator to use 'length'
-   bytes of memory at 'base'. */
+// Initialize memory allocator to use LENGTH bytes of memory at BASE
 void mem_init(uint8_t *base, size_t length)
 {
     g_base = base; // DEBUG:
@@ -64,7 +63,7 @@ void mem_init(uint8_t *base, size_t length)
 }
 
 
-/* Allocate 'length' bytes of memory. */
+// Allocate LENGTH bytes of memory
 void * mem_alloc(size_t length)
 {
     size_t length_needed = sizeof(struct used_block) + length;
@@ -92,7 +91,7 @@ void * mem_alloc(size_t length)
     return NULL;
 }
 
-/* Free memory pointed to by 'ptr'. */
+// Free memory pointed to by PTR
 void mem_free(void *ptr)
 {
     printf(KGRN "\nDEBUG: FREE: %d\n" RESET, p_addr(ptr));
@@ -135,14 +134,14 @@ void mem_free(void *ptr)
     mem_dump_free_list(); // DEBUG:
 }
 
-/* Return the number of elements in the free list. */
-size_t mem_sizeof_free_list(void)
+// Return the number of elements in the free list.
+size_t mem_sizeof_free_list()
 {
     return list_size(&free_block_list);
 }
 
-/* Dump the free list.  Implementation of this method is optional. */
-void mem_dump_free_list(void)
+// Dump the free list.  Implementation of this method is optional.
+void mem_dump_free_list()
 {
     struct free_block *f;
     f = list_entry(list_rend(&free_block_list), struct free_block, elem);
