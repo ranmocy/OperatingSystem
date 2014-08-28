@@ -1,9 +1,7 @@
 guard :shell do
   watch("memalloc.c") do
-    name = "memalloc.c"
-    puts `cc -g -Wall -I../lib -I../lib/kernel -o test_mem test_mem.c memalloc.c ../lib/kernel/list.c -lpthread`
-    puts `./test_mem`
-    n "Runned", name, $?.success? ? :success : :failed
+    puts `make && ./test_mem`
+    n "Runned", "memalloc", $?.success? ? :success : :failed
     "=====FINISHED===================="
   end
 end
