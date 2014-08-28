@@ -11,7 +11,7 @@
 #define KWHT  "\x1B[37m"
 #define RESET "\033[0m"
 
-#define p_addr(PTR) (int)((uintptr_t)PTR - (uintptr_t)g_base)
+#define p_addr(PTR) (int)((void *)PTR - (void *)g_base)
 
 #define get_free_block(ELEM_P)      list_entry(ELEM_P, struct free_block, elem)
 #define get_used_block(PTR)         (struct used_block *)(PTR - sizeof(struct used_block))
@@ -24,6 +24,7 @@
 #define block_push_front(FB_P)      list_push_front(&free_block_list, &(FB_P->elem))
 #define block_remove(FB_P)          list_remove(&(FB_P->elem))
 
+
 struct list free_block_list;
 uint8_t *g_base;
 
@@ -31,7 +32,8 @@ uint8_t *g_base;
 // splice block F into two block with length LENGTH, and F->length - LENGTH
 void block_slice(struct free_block *f, size_t length)
 {
-    struct free_block *n = (struct free_block *)((uintptr_t)f + length);
+    struct free_block *n = (struct free_block *)((void *)f + length);
+    printf(KYEL "\nDEBUG: BLOCK_SLICK: %d, %d, %d\n", p_addr(f), (int)length, p_addr(n));
     n->length = f->length - length;
     f->length = length;
     block_append(f, n);
@@ -46,6 +48,15 @@ void union_block(struct free_block *current)
     list_remove(&(next->elem));
 }
 
+// Union two free_block CURRENT with the next free_block if they are adjacent
+// void union_block_if_adjacent(struct free_block *current)
+void union_block_if_adjacent(struct free_block *current)
+{
+    struct free_block *next = block_next(current); \
+    if ((void *)current + current->length == (void *)next) { \
+        union_block(current);
+    }
+}
 
 
 // Initialize memory allocator to use LENGTH bytes of memory at BASE
@@ -67,7 +78,10 @@ void mem_init(uint8_t *base, size_t length)
 // Allocate LENGTH bytes of memory
 void * mem_alloc(size_t length)
 {
+    if (length == 0) return NULL;
+
     size_t length_needed = sizeof(struct used_block) + length;
+
     printf(KRED "\nDEBUG: MALLOC: %d, real: %d\n" RESET, (int)length, (int)length_needed);
     mem_dump_free_list(); // DEBUG:
 
@@ -98,35 +112,23 @@ void mem_free(void *ptr)
     printf(KGRN "\nDEBUG: FREE: %d\n" RESET, p_addr(ptr));
     mem_dump_free_list(); // DEBUG:
 
-    struct used_block *u = (struct used_block *)(ptr - sizeof(struct used_block));
-    size_t block_length = u->length + sizeof(struct used_block);
-
+    struct used_block *u = get_used_block(ptr);
     struct free_block *next_free_block = block_end(); // Default
-
     struct free_block *current;
     for (current = block_begin(); current != block_end(); current = block_next(current)) {
-        if ((uintptr_t)u < (uintptr_t)current) {
+        if ((void *)u < (void *)current) {
             next_free_block = current;
             break;
         }
     }
 
     struct free_block *f = (struct free_block *) u;
-    f->length = block_length;
+    f->length = u->length;
     block_insert(next_free_block, f);
 
-    // if we need to union before
-    struct free_block *prev = block_prev(f);
-    if ((uintptr_t)prev + prev->length == (uintptr_t)f) {
-        union_block(prev);
-        f = prev;
-    }
-
-    // if we need to union after
-    struct free_block *next = block_next(f);
-    if ((uintptr_t)f + f->length == (uintptr_t)next) {
-        union_block(f);
-    }
+    // union if adjacent
+    union_block_if_adjacent(f);
+    union_block_if_adjacent(block_prev(f));
 
     mem_dump_free_list(); // DEBUG:
 }
