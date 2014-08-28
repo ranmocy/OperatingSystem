@@ -12,6 +12,7 @@
 #define RESET "\033[0m"
 
 #define p_addr(PTR) (int)((void *)PTR - (void *)g_base)
+#define debug(STR, ...) printf(KYEL "\nDEBUG: " STR "\n" RESET, __VA_ARGS__)
 
 #define get_free_block(ELEM_P)      list_entry(ELEM_P, struct free_block, elem)
 #define get_used_block(PTR)         (struct used_block *)(PTR - sizeof(struct used_block))
@@ -33,7 +34,6 @@ uint8_t *g_base;
 void block_slice(struct free_block *f, size_t length)
 {
     struct free_block *n = (struct free_block *)((void *)f + length);
-    printf(KYEL "\nDEBUG: BLOCK_SLICK: %d, %d, %d\n", p_addr(f), (int)length, p_addr(n));
     n->length = f->length - length;
     f->length = length;
     block_append(f, n);
@@ -43,7 +43,7 @@ void block_slice(struct free_block *f, size_t length)
 void union_block(struct free_block *current)
 {
     struct free_block *next = block_next(current);
-    printf(KYEL "\nDEBUG: UNION_BLOCK: %d with %d\n" RESET, p_addr(current), p_addr(next));
+    debug("UNION_BLOCK: %d with %d", p_addr(current), p_addr(next));
     current->length += next->length;
     list_remove(&(next->elem));
 }
@@ -63,7 +63,7 @@ void union_block_if_adjacent(struct free_block *current)
 void mem_init(uint8_t *base, size_t length)
 {
     g_base = base; // DEBUG:
-    printf("\nDEBUG: BASE: %d -> %d, LENGTH: %d\n", (int)base, (int)(base + length), (int)length);
+    debug("BASE: %d -> %d, LENGTH: %d", (int)base, (int)(base + length), (int)length);
 
     list_init(&free_block_list);
 
@@ -81,9 +81,7 @@ void * mem_alloc(size_t length)
     if (length == 0) return NULL;
 
     size_t length_needed = sizeof(struct used_block) + length;
-
-    printf(KRED "\nDEBUG: MALLOC: %d, real: %d\n" RESET, (int)length, (int)length_needed);
-    mem_dump_free_list(); // DEBUG:
+    debug(KRED "MALLOC: %d, real: %d", (int)length, (int)length_needed);
 
     struct free_block *f;
     for (f = block_begin(); f != block_end(); f = block_next(f)) {
@@ -109,9 +107,7 @@ void * mem_alloc(size_t length)
 // Free memory pointed to by PTR
 void mem_free(void *ptr)
 {
-    printf(KGRN "\nDEBUG: FREE: %d\n" RESET, p_addr(ptr));
-    mem_dump_free_list(); // DEBUG:
-
+    debug(KGRN "FREE: %d", p_addr(ptr));
     struct used_block *u = get_used_block(ptr);
     struct free_block *next_free_block = block_end(); // Default
     struct free_block *current;
