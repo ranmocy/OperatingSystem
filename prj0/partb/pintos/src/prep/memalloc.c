@@ -13,15 +13,16 @@
 
 #define p_addr(PTR) (int)((uintptr_t)PTR - (uintptr_t)g_base)
 
-#define get_free_block(ELEM_P) list_entry(ELEM_P, struct free_block, elem)
-#define block_begin() get_free_block(list_begin(&free_block_list))
-#define block_end() get_free_block(list_end(&free_block_list))
-#define block_next(FB_P) get_free_block(list_next(&(FB_P->elem)))
-#define block_prev(FB_P) get_free_block(list_prev(&(FB_P->elem)))
-#define block_insert(FB1_P, FB2_P) list_insert(&(FB1_P->elem), &(FB2_P->elem))
-#define block_append(FB1_P, FB2_P) block_insert(block_next(FB1_P), FB2_P)
-#define block_push_front(FB_P) list_push_front(&free_block_list, &(FB_P->elem))
-#define block_remove(FB_P) list_remove(&(FB_P->elem))
+#define get_free_block(ELEM_P)      list_entry(ELEM_P, struct free_block, elem)
+#define get_used_block(PTR)         (struct used_block *)(PTR - sizeof(struct used_block))
+#define block_begin()               get_free_block(list_begin(&free_block_list))
+#define block_end()                 get_free_block(list_end(&free_block_list))
+#define block_next(FB_P)            get_free_block(list_next(&(FB_P->elem)))
+#define block_prev(FB_P)            get_free_block(list_prev(&(FB_P->elem)))
+#define block_insert(FB1_P, FB2_P)  list_insert(&(FB1_P->elem), &(FB2_P->elem))
+#define block_append(FB1_P, FB2_P)  block_insert(block_next(FB1_P), FB2_P)
+#define block_push_front(FB_P)      list_push_front(&free_block_list, &(FB_P->elem))
+#define block_remove(FB_P)          list_remove(&(FB_P->elem))
 
 struct list free_block_list;
 uint8_t *g_base;
@@ -100,14 +101,10 @@ void mem_free(void *ptr)
     struct used_block *u = (struct used_block *)(ptr - sizeof(struct used_block));
     size_t block_length = u->length + sizeof(struct used_block);
 
-    struct free_block *next_free_block = get_free_block(list_end(&free_block_list));
+    struct free_block *next_free_block = block_end(); // Default
 
-    for (struct list_elem *e = list_begin(&free_block_list);
-         e != list_end(&free_block_list);
-         e = list_next(e))
-    {
-        struct free_block *current = list_entry(e, struct free_block, elem);
-
+    struct free_block *current;
+    for (current = block_begin(); current != block_end(); current = block_next(current)) {
         if ((uintptr_t)u < (uintptr_t)current) {
             next_free_block = current;
             break;
