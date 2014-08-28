@@ -1,5 +1,5 @@
 /*
- * This test program tests the thread-safe memory allocator 
+ * This test program tests the thread-safe memory allocator
  * in project 0.
  *
  * Written by: Godmar Back <gback@cs.vt.edu>
@@ -28,9 +28,9 @@ static long long leftfence;
 static uint8_t memory[MEMSIZE]; /* Area of memory on which allocator works. 2^16 = 64KB */
 static long long rightfence;
 
-/* These declarations are duplicated because we're including Pintos's 
+/* These declarations are duplicated because we're including Pintos's
    (a non-standard) stdlib.h above which does not declare those functions. */
-extern void exit(int);        
+extern void exit(int);
 extern int rand_r(unsigned int *);
 
 /* Free block pointed to by *ptr.
@@ -49,7 +49,7 @@ check_and_free(uint8_t **ptr, size_t sz)
 }
 
 /* Allocate a random number of bytes and initialize them.
-   Set *ptr to allocate memory, and *size to allocated length. 
+   Set *ptr to allocate memory, and *size to allocated length.
    If already allocated, reinitialize to same values.  */
 static void
 allocate_and_set(uint8_t **ptr, size_t sz)
@@ -79,7 +79,7 @@ test_single(void *arg)
   size_t sizes[NPTRS];
   memset(ptrs, 0, sizeof ptrs);
   /* 'arg' is an integer used to seed our random numbers. */
-  unsigned seed = (unsigned) arg;       
+  unsigned seed = (unsigned) arg;
 
   /* Alternate between an allocation and a deallocation round. */
   bool alloc = true;
@@ -103,7 +103,7 @@ test_single(void *arg)
           else
           if (ptrs[i] != NULL)
             /* free entry if in use. */
-            check_and_free(&ptrs[i], sizes[i]);         
+            check_and_free(&ptrs[i], sizes[i]);
         }
 
       alloc = !alloc;
@@ -130,7 +130,7 @@ check_free_list_size()
   bool success = true;
   if (mem_sizeof_free_list() != 1)
     {
-      printf("elements in free list %d, should be 1.\n", 
+      printf("elements in free list %d, should be 1.\n",
         (int) mem_sizeof_free_list());
       success = false;
     }
@@ -219,7 +219,7 @@ main(int ac, char *av[])
 
   /* Test the memory allocator with NTHREADS concurrent threads. */
   pthread_t threads[NTHREADS];
-  int i;
+  long i;
   for (i = 0; i < NTHREADS; i++)
     if (pthread_create(threads + i, (const pthread_attr_t*)NULL, test_single, (void*)i) == -1)
       {

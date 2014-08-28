@@ -6,14 +6,14 @@
 #include <list.h>
 
 /*
- * This header file describes the public interface of the first-fit 
+ * This header file describes the public interface of the first-fit
  * memory allocator.
  *
  * All functions except mem_init() must be implemented in a thread-safe
  * manner.  Use the pthread_mutex_* functions as needed.
  */
 
-/* Initialize memory allocator to use 'length' 
+/* Initialize memory allocator to use 'length'
    bytes of memory at 'base'. */
 void mem_init(uint8_t *base, size_t length);
 
@@ -45,10 +45,10 @@ void mem_dump_free_list(void);
  * For more information on zero-length arrays, see
  * http://gcc.gnu.org/onlinedocs/gcc/Zero-Length.html
  *
- * Normally, this declaration would not be exported; 
- * it would be in memalloc.c instead of here.  
+ * Normally, this declaration would not be exported;
+ * it would be in memalloc.c instead of here.
  * We provide it here as a suggestion.
- */ 
+ */
 struct free_block
   {
     size_t              length;         /* length of block, including header */
@@ -58,7 +58,7 @@ struct free_block
 struct used_block
   {
     size_t              length;         /* length of block, including header */
-    uint8_t             data[0];        /* memory_block.data points at the 
+    uint8_t             data[0];        /* memory_block.data points at the
                                            memory behind the length . */
   };
 
