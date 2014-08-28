@@ -11,16 +11,40 @@
 #define KWHT  "\x1B[37m"
 #define RESET "\033[0m"
 
-#define p_addr(PTR) (int)((uint8_t *)PTR - g_base)
+#define p_addr(PTR) (int)((uintptr_t)PTR - (uintptr_t)g_base)
+
 #define get_free_block(ELEM_P) list_entry(ELEM_P, struct free_block, elem)
-#define next_free_block(FB_P) get_free_block(list_next(&(FB_P->elem)))
-#define block_insert(FB1_P, FB2_P) list_insert(&(FB1_P->elem), &(FB2_P->elem))
+#define block_begin() get_free_block(list_begin(&free_block_list))
+#define block_end() get_free_block(list_end(&free_block_list))
 #define block_next(FB_P) get_free_block(list_next(&(FB_P->elem)))
 #define block_prev(FB_P) get_free_block(list_prev(&(FB_P->elem)))
-
+#define block_insert(FB1_P, FB2_P) list_insert(&(FB1_P->elem), &(FB2_P->elem))
+#define block_append(FB1_P, FB2_P) block_insert(block_next(FB1_P), FB2_P)
+#define block_push_front(FB_P) list_push_front(&free_block_list, &(FB_P->elem))
+#define block_remove(FB_P) list_remove(&(FB_P->elem))
 
 struct list free_block_list;
 uint8_t *g_base;
+
+
+// splice block F into two block with length LENGTH, and F->length - LENGTH
+void block_slice(struct free_block *f, size_t length)
+{
+    struct free_block *n = (struct free_block *)((uintptr_t)f + length);
+    n->length = f->length - length;
+    f->length = length;
+    block_append(f, n);
+}
+
+// Union two free_block CURRENT with the next free_block
+void union_block(struct free_block *current)
+{
+    struct free_block *next = block_next(current);
+    printf(KYEL "\nDEBUG: UNION_BLOCK: %d with %d\n" RESET, p_addr(current), p_addr(next));
+    current->length += next->length;
+    list_remove(&(next->elem));
+}
+
 
 
 /* Initialize memory allocator to use 'length'
@@ -32,11 +56,13 @@ void mem_init(uint8_t *base, size_t length)
 
     list_init(&free_block_list);
 
-    struct free_block *block_p = (struct free_block *) base;
-    block_p->length = length;
-    list_push_front(&free_block_list, &(block_p->elem));
+    struct free_block *f = (struct free_block *) base;
+    f->length = length;
+    block_push_front(f);
+
     mem_dump_free_list(); // DEBUG:
 }
+
 
 /* Allocate 'length' bytes of memory. */
 void * mem_alloc(size_t length)
@@ -45,40 +71,25 @@ void * mem_alloc(size_t length)
     printf(KRED "\nDEBUG: MALLOC: %d, real: %d\n" RESET, (int)length, (int)length_needed);
     mem_dump_free_list(); // DEBUG:
 
-    for (struct list_elem *e = list_begin(&free_block_list);
-         e != list_end(&free_block_list);
-         e = list_next(e))
-    {
-        struct free_block *f = list_entry(e, struct free_block, elem);
-
-        // if we have more space
+    struct free_block *f;
+    for (f = block_begin(); f != block_end(); f = block_next(f)) {
+        // if we have space to slice the block into two
         if (f->length > length_needed + sizeof(struct free_block)) {
-            struct free_block *n = (struct free_block *)((void *)f + length_needed);
-            n->length = f->length - length_needed;
-            list_insert(list_next(e), &(n->elem));
+            block_slice(f, length_needed);
         }
 
-        // or if we can use the whole block
+        // then if we can use the whole block
         if (f->length >= length_needed) {
-            list_remove(e);
-
             struct used_block *u = (struct used_block *) f;
-            u->length = length;
+            u->length = f->length;
 
+            block_remove(f);
             mem_dump_free_list(); // DEBUG:
             return &(u->data);
         }
     }
 
     return NULL;
-}
-
-// Union two free_block CURRENT with the next free_block
-void union_block(struct free_block *current) {
-    struct free_block *next = next_free_block(current);
-    printf(KYEL "\nDEBUG: UNION_BLOCK: %d with %d\n" RESET, p_addr(current), p_addr(next));
-    current->length += next->length;
-    list_remove(&(next->elem));
 }
 
 /* Free memory pointed to by 'ptr'. */
@@ -133,7 +144,6 @@ size_t mem_sizeof_free_list(void)
 /* Dump the free list.  Implementation of this method is optional. */
 void mem_dump_free_list(void)
 {
-    // printf("Dumping the free list:\n");
     struct free_block *f;
     f = list_entry(list_rend(&free_block_list), struct free_block, elem);
     printf("\thead:\t%d -> %d: length %d\n", p_addr(f), p_addr(f + f->length), (int)(f->length));
@@ -146,5 +156,4 @@ void mem_dump_free_list(void)
     }
     f = list_entry(list_end(&free_block_list), struct free_block, elem);
     printf("\ttail:\t%d -> %d: length %d\n\n", p_addr(f), p_addr(f + f->length), (int)(f->length));
-    // printf("Dumped.\n");
 }
