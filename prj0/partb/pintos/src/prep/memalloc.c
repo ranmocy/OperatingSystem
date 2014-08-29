@@ -11,7 +11,7 @@
 #define KWHT  "\x1B[37m"
 #define RESET "\033[0m"
 
-#define p_addr(PTR) (int)((void *)PTR - (void *)g_base)
+#define addr_d(PTR) (int)((void *)PTR - (void *)g_base)
 #define debug(STR, ...) printf(KYEL "\nDEBUG: " STR "\n" RESET, __VA_ARGS__)
 
 #define get_free_block(ELEM_P)      list_entry(ELEM_P, struct free_block, elem)
@@ -45,7 +45,7 @@ void block_slice(struct free_block *f, size_t length)
 void union_block(struct free_block *current)
 {
     struct free_block *next = block_next(current);
-    debug("UNION_BLOCK: %d with %d", p_addr(current), p_addr(next));
+    debug("UNION_BLOCK: %d with %d", addr_d(current), addr_d(next));
     current->length += next->length;
     list_remove(&(next->elem));
 }
@@ -117,7 +117,7 @@ void * mem_alloc(size_t length)
 // Free memory pointed to by PTR
 void mem_free(void *ptr)
 {
-    debug(KGRN "FREE: " RESET "%d", p_addr(ptr));
+    debug(KGRN "FREE: " RESET "%d", addr_d(ptr));
     struct used_block *u = get_used_block(ptr);
     struct free_block *next_free_block = block_end(); // Default
     struct free_block *current;
@@ -150,14 +150,14 @@ void mem_dump_free_list()
 {
     struct free_block *f;
     f = list_entry(list_rend(&free_block_list), struct free_block, elem);
-    printf("\thead:\t%d -> %d: length %d\n", p_addr(f), p_addr(f + f->length), (int)(f->length));
+    printf("\thead:\t%d -> %d: length %d\n", addr_d(f), addr_d(f + f->length), (int)(f->length));
     for (struct list_elem *e = list_begin(&free_block_list);
          e != list_end(&free_block_list);
          e = list_next(e))
     {
         f = list_entry(e, struct free_block, elem);
-        printf("\tblock:\t%d -> %d: length %d\n", p_addr(f), p_addr(f + f->length - 1), (int)(f->length));
+        printf("\tblock:\t%d -> %d: length %d\n", addr_d(f), addr_d(f + f->length - 1), (int)(f->length));
     }
     f = list_entry(list_end(&free_block_list), struct free_block, elem);
-    printf("\ttail:\t%d -> %d: length %d\n\n", p_addr(f), p_addr(f + f->length), (int)(f->length));
+    printf("\ttail:\t%d -> %d: length %d\n\n", addr_d(f), addr_d(f + f->length), (int)(f->length));
 }
