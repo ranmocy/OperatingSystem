@@ -6,7 +6,6 @@
 #define USED_BLOCK_SIZE                 (sizeof(struct used_block))
 #define BLOCK_SIZE                      (MAX (FREE_BLOCK_SIZE, USED_BLOCK_SIZE))
 
-#define p_relative(PTR)                 ((void *)(PTR) - g_base)
 #define p_offset(PTR, OFFSET)           ((void *)((void *)(PTR) + (size_t)(OFFSET)))
 #define p_lt(P1, P2)                    ((void *)(P1) < (void *)(P2))
 #define p_eq(P1, P2)                    ((void *)(P1) == (void *)(P2))
@@ -55,15 +54,12 @@
 })
 
 struct list free_block_list;
-void *g_base, *g_peak;
 
 
 // Initialize memory allocator to use 'length' bytes of memory at 'base'.
 void mem_init(uint8_t *base, size_t length)
 {
     list_init (&free_block_list);
-    g_base = base;
-    g_peak = p_offset (base, length);
     block_push_front (build_free_block (base, length));
 }
 
