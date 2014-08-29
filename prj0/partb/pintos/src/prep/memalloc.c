@@ -3,8 +3,8 @@
 
 #undef ASSERT
 #define ASSERT(CONDITION, MSG)      if (CONDITION) { } else { PANIC("assertion `%s' failed.", MSG); }
-#define ASSERT_PTR(PTR, MSG)        ASSERT((void *)(g_base) <= (void *)(PTR), "PTR: " MSG " underflow!"); \
-                                    ASSERT((void *)(PTR) < (void *)(g_bound), "PTR: " MSG " overflow!")
+#define ASSERT_PTR(PTR, MSG)        ASSERT((void *)(g_base) <=  (void *)(PTR),      "PTR: " MSG " underflow!"); \
+                                    ASSERT((void *)(PTR)    <   (void *)(g_peak),   "PTR: " MSG " overflow!")
 #define ASSERT_BYTE(FB_P)           *(char *)(FB_P) = 0;
 #define ASSERT_BLOCK(FB_P, MSG)     ASSERT_PTR(FB_P, MSG); ASSERT_PTR((void *)FB_P + FB_P->length, MSG)
 
@@ -27,7 +27,7 @@
 
 
 struct list free_block_list;
-uint8_t *g_base, *g_bound;
+uint8_t *g_base, *g_peak;
 
 
 // Union free_block CURRENT with the next free_block if they are adjacent
@@ -47,7 +47,7 @@ void block_union(struct free_block *current)
 void mem_init(uint8_t *base, size_t length)
 {
     g_base = base;
-    g_bound = base + length;
+    g_peak = base + length;
     list_init(&free_block_list);
     ASSERT_BYTE(base);
     ASSERT_BYTE((void *)base + length);
