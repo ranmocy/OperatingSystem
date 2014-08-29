@@ -101,11 +101,19 @@ void mem_free(void *ptr)
 // Return the number of elements in the free list.
 size_t mem_sizeof_free_list(void)
 {
-    return list_size(&free_block_list);
+    return list_size (&free_block_list);
 }
 
 // Dump the free list.
+#define DUMP_BLOCK(PTR, NAME) printf(#NAME ":\t%p -> %p, %zu\n", (PTR), p_offset ((PTR), (PTR)->length), (PTR)->length);
 void mem_dump_free_list(void)
 {
-
+    DUMP_BLOCK (block_rend (), head);
+    struct free_block *f;
+    for (f = block_begin (); f != block_end (); f = block_next (f)) {
+        DUMP_BLOCK (f, block);
+    }
+    DUMP_BLOCK (block_end (), tail);
+    printf("=====Dumped=====\n");
 }
+#undef DUMP_BLOCK
