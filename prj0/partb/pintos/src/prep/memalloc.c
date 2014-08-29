@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include "memalloc.h"
 
+#define MAX(A, B)                       ((A) > (B) ? (A) : (B))
 #define FREE_BLOCK_SIZE                 (sizeof(struct free_block))
 #define USED_BLOCK_SIZE                 (sizeof(struct used_block))
+#define BLOCK_SIZE                      (MAX (FREE_BLOCK_SIZE, USED_BLOCK_SIZE))
 
 #define p_relative(PTR)                 ((void *)(PTR) - g_base)
 #define p_offset(PTR, OFFSET)           ((void *)((void *)(PTR) + (size_t)(OFFSET)))
@@ -70,7 +72,7 @@ void * mem_alloc(size_t length)
 {
     if (length == 0) return NULL;
 
-    size_t u_length = USED_BLOCK_SIZE + length;
+    size_t u_length = MAX(BLOCK_SIZE, USED_BLOCK_SIZE + length);
 
     struct free_block *f;
     for (f = block_begin (); f != block_end (); f = block_next(f)) {
@@ -96,6 +98,7 @@ void * mem_alloc(size_t length)
 void mem_free(void *ptr)
 {
     struct used_block *u = get_used_block(ptr);
+    ASSERT((u->length >= FREE_BLOCK_SIZE) || !!!"Not enough space to create a new free_block!");
 
     struct free_block *f, *target = block_rend ();
     for (f = block_rbegin (); f != block_rend (); f = block_prev (f)) {
@@ -105,66 +108,20 @@ void mem_free(void *ptr)
         }
     }
 
-    struct free_block *next = block_next (target);
-    // target: interior or head
-    // next: interior or tail
-
     // | target |...| u |...| next |
-    if (u->length >= FREE_BLOCK_SIZE) { // space enough, create a new free_block
-        struct free_block *new_block = build_free_block (u, u->length);
-        block_insert (next, new_block);
+    struct free_block *next = block_next (target);
+    struct free_block *new_block = build_free_block (u, u->length);
+    block_insert (next, new_block);
 
-        // if not tail and adjacent
-        if ((next != block_end ()) && (block_adjacent (new_block, next))) {
-            block_union(new_block);
-        }
-
-        // if not head and adjacent
-        if ((target != block_rend ()) && (block_adjacent (target, new_block))) {
-            block_union(target);
-        }
-
-        return;
+    // if not tail and adjacent
+    if ((next != block_end ()) && (block_adjacent (new_block, next))) {
+        block_union(new_block);
     }
 
-    // Not enough space for a new free_block
-
-    // not head and | target | u |...| next |
-    if ((target != block_rend ()) && (block_adjacent (target, u))) {
-        target->length += u->length;
-        return;
+    // if not head and adjacent
+    if ((target != block_rend ()) && (block_adjacent (target, new_block))) {
+        block_union(target);
     }
-
-    // not tail and | target |...| u | next |
-    if ((next != block_end ()) && (block_adjacent (u, next))) {
-        size_t new_length = u->length + next->length;
-        block_remove (next);
-        block_append (target, build_free_block (u, new_length));
-        return;
-    }
-
-    // Now, no free_block on either side.
-
-    // not the beginning, merge to prev block
-    if (p_lt (g_base, u)) {
-        struct used_block *to_merge;
-        if (target == block_rend ()) {
-            to_merge = (struct used_block *) g_base;
-        } else {
-            to_merge = (struct used_block *) p_offset (target, target->length);
-        }
-        // search for the most adjacent one
-        while (p_lt (p_offset (to_merge, to_merge->length), u)) {
-            to_merge = p_offset (to_merge, to_merge->length);
-        }
-
-        to_merge->length += u->length;
-        return;
-    }
-
-    // at the beginning, merge to next used block
-    ASSERT(false && "It's impossible to free a small block at the beginning!");
-    // char *p = 0; *p = 0;
 }
 
 // Return the number of elements in the free list.
