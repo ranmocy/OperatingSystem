@@ -54,6 +54,27 @@ void mem_init(uint8_t *base, size_t length)
 // Allocate 'length' bytes of memory.
 void * mem_alloc(size_t length)
 {
+    if (length == 0) return NULL;
+
+    size_t u_length = USED_BLOCK_SIZE + length;
+
+    struct free_block *f;
+    for (f = block_begin (); f != block_end (); f = block_next(f)) {
+        if (f->length >= u_length) {
+            if (f->length >= u_length + FREE_BLOCK_SIZE) {
+                // create a new free block
+                struct free_block *next = block_next(f);
+                block_remove (f);
+                block_insert (next, build_free_block (p_offset (f, u_length), f->length - u_length));
+            } else {
+                u_length = f->length;
+                block_remove (f);
+            }
+
+            return get_data (build_used_block (f, u_length));
+        }
+    }
+
     return NULL;
 }
 
