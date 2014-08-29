@@ -45,8 +45,10 @@ void *g_base, *g_peak;
 // Initialize memory allocator to use 'length' bytes of memory at 'base'.
 void mem_init(uint8_t *base, size_t length)
 {
-    list_init(&free_block_list);
-
+    list_init (&free_block_list);
+    g_base = base;
+    g_peak = p_offset (base, length);
+    block_push_front (build_free_block (base, length));
 }
 
 // Allocate 'length' bytes of memory.
@@ -64,7 +66,7 @@ void mem_free(void *ptr)
 // Return the number of elements in the free list.
 size_t mem_sizeof_free_list(void)
 {
-    return (size_t) 0;
+    return list_size(&free_block_list);
 }
 
 // Dump the free list.
