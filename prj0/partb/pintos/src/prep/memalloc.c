@@ -14,6 +14,9 @@
 #define addr_d(PTR) (int)((void *)PTR - (void *)g_base)
 #define debug(STR, ...) printf(KYEL "\nDEBUG: " STR "\n" RESET, __VA_ARGS__)
 
+#define ASSERT_PTR(PTR)             ASSERT((void *)g_base <= (void *)PTR || !"PTR underflow!") && \
+                                    ASSERT((void *)PTR < (void *)g_bound || !"PTR overflow!")
+
 #define get_free_block(ELEM_P)      list_entry(ELEM_P, struct free_block, elem)
 #define get_used_block(PTR)         (struct used_block *)(PTR - sizeof(struct used_block))
 #define block_begin()               get_free_block(list_begin(&free_block_list))
@@ -27,7 +30,7 @@
 
 
 struct list free_block_list;
-uint8_t *g_base;
+uint8_t *g_base, *g_bound;
 
 
 // splice block F into two block with length LENGTH, and F->length - LENGTH
@@ -65,7 +68,8 @@ void union_block_if_adjacent(struct free_block *current)
 void mem_init(uint8_t *base, size_t length)
 {
     g_base = base; // DEBUG:
-    debug("BASE: %d -> %d, LENGTH: %d", (int)base, (int)(base + length), (int)length);
+    g_bound = base + length; // DEBUG:
+    debug("BASE: %d -> %d, LENGTH: %d", (int)g_base, (int)g_bound, (int)length);
 
     list_init(&free_block_list);
 
