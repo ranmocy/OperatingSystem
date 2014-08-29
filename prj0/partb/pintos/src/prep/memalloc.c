@@ -5,22 +5,25 @@
 #define ASSERT(CONDITION, MSG)      if (CONDITION) { } else { PANIC("assertion `%s' failed.", MSG); }
 #define ASSERT_PTR(PTR, MSG)        ASSERT((void *)(g_base) <= (void *)(PTR), "PTR: " MSG " underflow!"); \
                                     ASSERT((void *)(PTR) < (void *)(g_bound), "PTR: " MSG " overflow!")
+#define ASSERT_BYTE(FB_P)           *(char *)(FB_P) = 0;
 #define ASSERT_BLOCK(FB_P, MSG)     ASSERT_PTR(FB_P, MSG); ASSERT_PTR((void *)FB_P + FB_P->length, MSG)
 
 #define addr_d(PTR)                 (int)((void *)PTR - (void *)g_base)
-#define block_tail_p(FB_P)          (void *)FB_P + FB_P->length
+#define block_head_p(FB_P)          (void *)FB_P
+#define block_tail_p(FB_P)          block_head_p(FB_P) + FB_P->length
+#define elem_p(FB_P)                &(FB_P->elem)
 
 #define get_free_block(ELEM_P)      list_entry(ELEM_P, struct free_block, elem)
-#define get_used_block(PTR)         (struct used_block *)(PTR - sizeof(struct used_block))
-#define block_begin()               get_free_block(list_begin(&free_block_list))
-#define block_end()                 get_free_block(list_end(&free_block_list))
-#define block_rend()                get_free_block(list_rend(&free_block_list))
-#define block_next(FB_P)            get_free_block(list_next(&(FB_P->elem)))
-#define block_prev(FB_P)            get_free_block(list_prev(&(FB_P->elem)))
-#define block_insert(FB1_P, FB2_P)  list_insert(&(FB1_P->elem), &(FB2_P->elem))
-#define block_append(FB1_P, FB2_P)  block_insert(block_next(FB1_P), FB2_P)
-#define block_push_front(FB_P)      list_push_front(&free_block_list, &(FB_P->elem))
-#define block_remove(FB_P)          list_remove(&(FB_P->elem))
+#define get_used_block(PTR)         (struct used_block *)((void *)PTR - sizeof(struct used_block))
+#define block_begin()               get_free_block  (list_begin     (&free_block_list))
+#define block_end()                 get_free_block  (list_end       (&free_block_list))
+#define block_rend()                get_free_block  (list_rend      (&free_block_list))
+#define block_next(FB_P)            get_free_block  (list_next      (elem_p(FB_P)))
+#define block_prev(FB_P)            get_free_block  (list_prev      (elem_p(FB_P)))
+#define block_insert(FB1_P, FB2_P)  list_insert     (elem_p(FB1_P),             elem_p(FB2_P))
+#define block_append(FB1_P, FB2_P)  list_insert     (list_next(elem_p(FB1_P)),  elem_p(FB2_P))
+#define block_push_front(FB_P)      list_push_front (&free_block_list,          elem_p(FB_P))
+#define block_remove(FB_P)          list_remove     (elem_p(FB_P))
 
 
 struct list free_block_list;
@@ -31,14 +34,11 @@ uint8_t *g_base, *g_bound;
 void block_union(struct free_block *current)
 {
     ASSERT_BLOCK(current, "block_union: current");
-
     struct free_block *next = block_next(current); \
-    if (block_tail_p(current) == (void *)next) { \
+    if (block_tail_p(current) == block_head_p(next)) { \
         ASSERT_BLOCK(next, "block_union: next");
-
-        struct free_block *next = block_next(current);
         current->length += next->length;
-        list_remove(&(next->elem));
+        block_remove(next);
     }
 }
 
@@ -49,6 +49,8 @@ void mem_init(uint8_t *base, size_t length)
     g_base = base;
     g_bound = base + length;
     list_init(&free_block_list);
+    ASSERT_BYTE(base);
+    ASSERT_BYTE((void *)base + length);
 
     struct free_block *f = (struct free_block *) base;
     f->length = length;
