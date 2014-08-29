@@ -22,32 +22,14 @@ struct list free_block_list;
 uint8_t *g_base, *g_bound;
 
 
-// splice block F into two block with length LENGTH, and F->length - LENGTH
-void block_slice(struct free_block *f, size_t length)
-{
-    ASSERT((length > sizeof(struct free_block)) || !"Can't have a free_block at the beginning.");
-
-    struct free_block *n = (struct free_block *)((void *)f + length);
-    n->length = f->length - length;
-    f->length = length;
-    block_append(f, n);
-}
-
-// Union two free_block CURRENT with the next free_block
-void union_block(struct free_block *current)
-{
-    struct free_block *next = block_next(current);
-    current->length += next->length;
-    list_remove(&(next->elem));
-}
-
 // Union two free_block CURRENT with the next free_block if they are adjacent
-// void union_block_if_adjacent(struct free_block *current)
-void union_block_if_adjacent(struct free_block *current)
+void block_union(struct free_block *current)
 {
     struct free_block *next = block_next(current); \
     if ((void *)current + current->length == (void *)next) { \
-        union_block(current);
+        struct free_block *next = block_next(current);
+        current->length += next->length;
+        list_remove(&(next->elem));
     }
 }
 
@@ -118,8 +100,8 @@ void mem_free(void *ptr)
     block_insert(next_free_block, f);
 
     // union if adjacent
-    union_block_if_adjacent(f);
-    union_block_if_adjacent(block_prev(f));
+    block_union(f);
+    block_union(block_prev(f));
 }
 
 // Return the number of elements in the free list.
