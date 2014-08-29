@@ -6,6 +6,7 @@
 
 #define p_relative(PTR)                 ((void *)(PTR) - g_base)
 #define p_offset(PTR, OFFSET)           ((void *)((void *)(PTR) + (size_t)(OFFSET)))
+#define p_lt(P1, P2)                    ((void *)(P1) < (void *)(P2))
 
 #define get_elem(FB_P)                  (&((FB_P)->elem))
 #define get_data(UB_P)                  (&((UB_P)->data))
@@ -13,8 +14,8 @@
 #define get_used_block(DATA_P)          ((struct used_block *) p_offset ((DATA_P), -(USED_BLOCK_SIZE)))
 
 #define block_begin()                   get_free_block (list_begin (&free_block_list))
-#define block_rbegin()                  get_free_block (list_rbegin (&free_block_list))
 #define block_end()                     get_free_block (list_end (&free_block_list))
+#define block_rbegin()                  get_free_block (list_rbegin (&free_block_list))
 #define block_rend()                    get_free_block (list_rend (&free_block_list))
 #define block_head()                    get_free_block (list_head (&free_block_list))
 #define block_tail()                    get_free_block (list_tail (&free_block_list))
