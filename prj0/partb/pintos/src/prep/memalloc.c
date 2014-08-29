@@ -33,6 +33,8 @@ uint8_t *g_base;
 // splice block F into two block with length LENGTH, and F->length - LENGTH
 void block_slice(struct free_block *f, size_t length)
 {
+    ASSERT((length > sizeof(struct free_block)) || !"Can't have a free_block at the beginning.");
+
     struct free_block *n = (struct free_block *)((void *)f + length);
     n->length = f->length - length;
     f->length = length;
@@ -81,21 +83,29 @@ void * mem_alloc(size_t length)
     if (length == 0) return NULL;
 
     size_t length_needed = sizeof(struct used_block) + length;
-    debug(KRED "MALLOC: %d, real: %d", (int)length, (int)length_needed);
+    debug(KRED "MALLOC: " RESET "%d, real: %d", (int)length, (int)length_needed);
 
     struct free_block *f;
     for (f = block_begin(); f != block_end(); f = block_next(f)) {
-        // if we have space to slice the block into two
-        if (f->length > length_needed + sizeof(struct free_block)) {
-            block_slice(f, length_needed);
-        }
-
-        // then if we can use the whole block
-        if (f->length >= length_needed) {
+        if (f->length >= length_needed) { // we have enough space
             struct used_block *u = (struct used_block *) f;
-            u->length = f->length;
-
+            struct free_block *next = block_next(f);
+            size_t f_length = f->length;
             block_remove(f);
+
+            // if we don't have enough for another free_block at the end
+            if (f_length < length_needed + sizeof(struct free_block)) {
+                // then we use the entire f
+                u->length = f_length;
+            } else {
+                // then we create and insert another free_block
+                u->length = length_needed;
+
+                struct free_block *n = (struct free_block *)((void *)f + length_needed);
+                n->length = f_length - length_needed;
+                block_insert(next, n);
+            }
+
             mem_dump_free_list(); // DEBUG:
             return &(u->data);
         }
@@ -107,7 +117,7 @@ void * mem_alloc(size_t length)
 // Free memory pointed to by PTR
 void mem_free(void *ptr)
 {
-    debug(KGRN "FREE: %d", p_addr(ptr));
+    debug(KGRN "FREE: " RESET "%d", p_addr(ptr));
     struct used_block *u = get_used_block(ptr);
     struct free_block *next_free_block = block_end(); // Default
     struct free_block *current;
