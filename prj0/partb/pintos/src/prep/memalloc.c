@@ -7,6 +7,7 @@
 #define p_relative(PTR)                 ((void *)(PTR) - g_base)
 #define p_offset(PTR, OFFSET)           ((void *)((void *)(PTR) + (size_t)(OFFSET)))
 #define p_lt(P1, P2)                    ((void *)(P1) < (void *)(P2))
+#define p_eq(P1, P2)                    ((void *)(P1) == (void *)(P2))
 
 #define get_elem(FB_P)                  (&((FB_P)->elem))
 #define get_data(UB_P)                  (&((UB_P)->data))
@@ -27,14 +28,26 @@
 #define block_append(FBB_P, FB_P)       block_insert (block_next (FBB_P), FB_P)
 #define block_push_front(FB_P)          list_push_front (&free_block_list, get_elem (FB_P))
 #define block_push_back(FB_P)           list_push_back (&free_block_list, get_elem (FB_P))
-
 #define block_remove(FB_P)              list_remove (get_elem (FB_P));
 
+#define block_adjacent(B1_P, B2_P)      (p_eq (p_offset ((B1_P), (B1_P)->length), B2_P))
+#define block_union(FB_P) ({ \
+    ASSERT ((FB_P) != NULL || !"Point NULL!"); \
+    ASSERT ((FB_P) != block_rend () || !"Can't union head block!"); \
+    ASSERT (block_next (FB_P) != NULL || !"Con't union end block!"); \
+    ASSERT (block_next (FB_P) != block_end () || !"Can't union end block!"); \
+    ASSERT (block_adjacent ((FB_P), block_next (FB_P)) || !"Blocks are not adjacent!"); \
+    (FB_P)->length += (block_next (FB_P))->length; \
+    block_remove (block_next (FB_P)); \
+})
+
 #define build_free_block(BASE, LENGTH)  ({ \
+    ASSERT (((LENGTH) >= FREE_BLOCK_SIZE) || !"Not enough length for free_block."); \
     ((struct free_block *) (BASE))->length = (LENGTH); \
     ((struct free_block *) (BASE)); \
 })
 #define build_used_block(BASE, LENGTH)  ({ \
+    ASSERT (((LENGTH) >= USED_BLOCK_SIZE) || !"Not enough length for used_block."); \
     ((struct used_block *) (BASE))->length = (LENGTH); \
     ((struct used_block *) (BASE)); \
 })
