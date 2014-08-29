@@ -1,9 +1,14 @@
 #include <stdio.h>
 #include "memalloc.h"
 
+#undef ASSERT
+#define ASSERT(CONDITION, MSG)      if (CONDITION) { } else { PANIC("assertion `%s' failed.", MSG); }
+#define ASSERT_PTR(PTR, MSG)        ASSERT((void *)(g_base) <= (void *)(PTR), "PTR: " MSG " underflow!"); \
+                                    ASSERT((void *)(PTR) < (void *)(g_bound), "PTR: " MSG " overflow!")
+#define ASSERT_BLOCK(FB_P, MSG)     ASSERT_PTR(FB_P, MSG); ASSERT_PTR((void *)FB_P + FB_P->length, MSG)
+
 #define addr_d(PTR)                 (int)((void *)PTR - (void *)g_base)
-#define ASSERT_PTR(PTR)             ASSERT((void *)g_base <= (void *)PTR || !"PTR underflow!") && \
-                                    ASSERT((void *)PTR < (void *)g_bound || !"PTR overflow!")
+#define block_tail_p(FB_P)          (void *)FB_P + FB_P->length
 
 #define get_free_block(ELEM_P)      list_entry(ELEM_P, struct free_block, elem)
 #define get_used_block(PTR)         (struct used_block *)(PTR - sizeof(struct used_block))
@@ -22,11 +27,15 @@ struct list free_block_list;
 uint8_t *g_base, *g_bound;
 
 
-// Union two free_block CURRENT with the next free_block if they are adjacent
+// Union free_block CURRENT with the next free_block if they are adjacent
 void block_union(struct free_block *current)
 {
+    ASSERT_BLOCK(current, "block_union: current");
+
     struct free_block *next = block_next(current); \
-    if ((void *)current + current->length == (void *)next) { \
+    if (block_tail_p(current) == (void *)next) { \
+        ASSERT_BLOCK(next, "block_union: next");
+
         struct free_block *next = block_next(current);
         current->length += next->length;
         list_remove(&(next->elem));
