@@ -1,0 +1,7 @@
+guard :shell do
+  watch("memalloc.c") do
+    puts `make && ./test_mem`
+    n "Runned", "memalloc", $?.success? ? :success : :failed
+    "=====FINISHED===================="
+  end
+end

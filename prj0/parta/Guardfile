@@ -1,0 +1,10 @@
+guard :shell do
+  watch(/(.*).c/) do |m|
+    name = m[1]
+    `gcc -o #{name} #{name}.c`
+    result = `./#{name} 1 1000 2`.match(/^min = (\d+), max = (\d+)$/)
+    puts "Result:\t#{result}"
+    puts "Expect:\tmin = 86383, max = 2146319451"
+    n "Runned", name, ((result[1] == "86383") && (result[2] == "2146319451")) ? :success : :failed
+  end
+end
