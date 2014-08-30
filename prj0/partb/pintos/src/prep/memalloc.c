@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <pthread.h>
 #include "memalloc.h"
 
 #define MAX(A, B)                       ((A) > (B) ? (A) : (B))
@@ -54,19 +55,26 @@
 })
 
 struct list free_block_list;
+pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 
 
 // Initialize memory allocator to use 'length' bytes of memory at 'base'.
 void mem_init(uint8_t *base, size_t length)
 {
+    pthread_mutex_lock (&g_lock);
+
     list_init (&free_block_list);
     block_push_front (build_free_block (base, length));
+
+    pthread_mutex_unlock (&g_lock);
 }
 
 // Allocate 'length' bytes of memory.
 void * mem_alloc(size_t length)
 {
     if (length == 0) return NULL;
+
+    pthread_mutex_lock (&g_lock);
 
     size_t u_length = MAX(BLOCK_SIZE, USED_BLOCK_SIZE + length);
 
@@ -89,12 +97,15 @@ void * mem_alloc(size_t length)
         }
     }
 
+    pthread_mutex_unlock (&g_lock);
     return result;
 }
 
 // Free memory pointed to by 'ptr'.
 void mem_free(void *ptr)
 {
+    pthread_mutex_lock (&g_lock);
+
     struct used_block *u = get_used_block(ptr);
     ASSERT((u->length >= FREE_BLOCK_SIZE) || !!!"Not enough space to create a new free_block!");
 
@@ -120,12 +131,17 @@ void mem_free(void *ptr)
     if ((target != block_rend ()) && (block_adjacent (target, new_block))) {
         block_union(target);
     }
+
+    pthread_mutex_unlock (&g_lock);
 }
 
 // Return the number of elements in the free list.
 size_t mem_sizeof_free_list(void)
 {
-    return list_size (&free_block_list);
+    pthread_mutex_lock (&g_lock);
+    size_t result = list_size (&free_block_list);
+    pthread_mutex_unlock (&g_lock);
+    return result;
 }
 
 // Dump the free list.
