@@ -70,23 +70,26 @@ void * mem_alloc(size_t length)
 
     size_t u_length = MAX(BLOCK_SIZE, USED_BLOCK_SIZE + length);
 
+    void *result = NULL;
     struct free_block *f;
     for (f = block_rbegin (); f != block_rend (); f = block_prev (f)) {
         if (f->length >= u_length) {
             if (f->length >= u_length + FREE_BLOCK_SIZE) {
                 // shrink the size of the free_block
                 f->length -= u_length;
-                return get_data (build_used_block (p_offset (f, f->length), u_length));
+                result = get_data (build_used_block (p_offset (f, f->length), u_length));
+                break;
             } else {
                 // use the entire free_block
                 u_length = f->length;
                 block_remove (f);
-                return get_data (build_used_block (f, u_length));
+                result = get_data (build_used_block (f, u_length));
+                break;
             }
         }
     }
 
-    return NULL;
+    return result;
 }
 
 // Free memory pointed to by 'ptr'.
