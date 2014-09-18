@@ -3,7 +3,7 @@
 #include<string.h>
 #include"list.h"
 
-extern void exit(int);        
+extern void exit(int);
 
 #define MAX_STR_LEN 128
 
@@ -16,11 +16,11 @@ struct version_node {
 
 struct list version_list;
 
-bool version_less_func(const struct list_elem *a, 
+bool version_less_func(const struct list_elem *a,
                        const struct list_elem *b, void *aux)
 {
     struct version_node *sa, *sb;
-    
+
     sa = list_entry(a, struct version_node, elem);
     sb = list_entry(b, struct version_node, elem);
 
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
     struct version_node v1, v2, v3, v4;
 
     list_init(&version_list);
-    
+
     v = &v1;
     strlcpy(v->name, "Liddy Piddy", MAX_STR_LEN);
     v->major = 3;
@@ -74,9 +74,9 @@ int main(int argc, char **argv)
     v->major = 1;
     v->minor = 1;
     list_insert_ordered(&version_list, &v->elem, version_less_func, NULL);
-        
+
     print_version_list(&version_list);
-    
+
     return 0;
 }
 
