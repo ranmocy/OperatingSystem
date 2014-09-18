@@ -39,7 +39,8 @@ devices_SRC += devices/shutdown.c	# Reboot and power off.
 devices_SRC += devices/speaker.c	# PC speaker.
 
 # Library code shared between kernel and user programs.
-lib_SRC  = lib/debug.c			# Debug helpers.
+lib_SRC  = lib/alarm.c			# Alarm clock.
+lib_SRC += lib/debug.c			# Debug helpers.
 lib_SRC += lib/random.c			# Pseudo-random numbers.
 lib_SRC += lib/stdio.c			# I/O library.
 lib_SRC += lib/stdlib.c			# Utility functions.
