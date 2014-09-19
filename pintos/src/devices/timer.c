@@ -3,11 +3,11 @@
 #include <inttypes.h>
 #include <round.h>
 #include <stdio.h>
+#include <list.h>
 #include "devices/pit.h"
 #include "threads/interrupt.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include "lib/kernel/list.h"
   
 /* See [8254] for hardware details of the 8254 timer chip. */
 
@@ -33,7 +33,7 @@ static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
-static bool timer_compare(const struct list_elem* a, const struct list_elem* b, void* _);
+static bool timer_compare (const struct list_elem* a, const struct list_elem* b, void* _);
 
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
@@ -42,7 +42,7 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
-  list_init(&sleeping_list);
+  list_init (&sleeping_list);
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -91,9 +91,10 @@ timer_elapsed (int64_t then)
 }
 
 /* Compare should thread A wake up first */
-bool timer_compare(const struct list_elem* a, const struct list_elem* b, void* _){
-	return list_entry(a, struct thread, elem)->sleep_end_tick
-		< list_entry(b, struct thread, elem)->sleep_end_tick;
+bool
+timer_compare (const struct list_elem* a, const struct list_elem* b, void* _){
+    return list_entry (a, struct thread, elem)->sleep_end_tick
+        < list_entry (b, struct thread, elem)->sleep_end_tick;
 }
 
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
@@ -101,15 +102,15 @@ bool timer_compare(const struct list_elem* a, const struct list_elem* b, void* _
 void
 timer_sleep (int64_t ticks) 
 {
-  struct thread* cur = thread_current();
+  struct thread* cur = thread_current ();
   enum intr_level level;
 
   ASSERT (intr_get_level () == INTR_ON);
-  cur->sleep_end_tick = timer_ticks() + ticks;
-  level = intr_disable();
-  list_insert_ordered(&sleeping_list, &cur->elem, timer_compare, NULL);
-  thread_block();
-  intr_set_level(level);
+  cur->sleep_end_tick = timer_ticks () + ticks;
+  level = intr_disable ();
+  list_insert_ordered (&sleeping_list, &cur->elem, timer_compare, NULL);
+  thread_block ();
+  intr_set_level (level);
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -188,14 +189,14 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
-  while (!list_empty(&sleeping_list)) {
-	  struct thread * nthread = list_entry(list_front(&sleeping_list), struct thread, elem);
-	  if (nthread->sleep_end_tick <= ticks){
-		  list_pop_front(&sleeping_list);
-		  thread_unblock(nthread);
-	  }
-	  else
-		  break;
+  while (!list_empty (&sleeping_list)) {
+    struct thread * nthread = list_entry (list_front (&sleeping_list), struct thread, elem);
+    if (nthread->sleep_end_tick <= ticks){
+      list_pop_front (&sleeping_list);
+      thread_unblock (nthread);
+    }
+    else
+      break;
   }
 }
 

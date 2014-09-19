@@ -98,8 +98,8 @@ struct thread
     uint32_t *pagedir;                  /* Page directory. */
 #endif
 
-	/* Owned by devices/timer.c. */
-	int64_t sleep_end_tick;
+    /* Owned by devices/timer.c. */
+    int64_t sleep_end_tick;
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
