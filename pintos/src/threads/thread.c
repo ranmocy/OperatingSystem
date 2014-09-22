@@ -357,9 +357,74 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
-  thread_current ()->original_priority = new_priority;
+  //thread_current ()->priority = new_priority;
+  //thread_current ()->original_priority = new_priority;
+  enum intr_level old_level;
+  int old_priority;
+
+  old_level = intr_disable();
+  old_priority = thread_current() -> priority;
+  thread_current()->original_priority = new_priority;
+
+  refresh_priority(); //refresh the current priority
+
+  if (old_priority < thread_current()->priority) {
+    donate_priority(); //priority donation
+  }
+  if (old_priority > thread_current()->priority) {
+    test_yield();
+  }
+  intr_set_level(old_level);
 }
+
+/*update the priority with the new value*/
+void refresh_priority(void) {
+    struct thread *cur;
+    struct thread *first_thread;
+
+    cur = thread_current();
+    cur->priority = cur->original_priority;
+
+    if (list_empty(&cur->waiting_thread_list)) {
+        return;
+    }
+
+    first_thread = list_entry(
+            list_front(&cur->waiting_thread_list),
+            struct thread,
+            thread_list_elem
+    );
+
+    if ((first_thread->priority) > (cur->priority)) {
+        cur->priority = first_thread->priority;
+    }
+}
+
+
+void donate_priority(void) {
+  int depth;
+  struct thread *thread;
+  struct lock *lock;
+
+  depth = 0;
+  thread = thread_current();
+  lock = thread->wait_on_lock;
+
+  while (lock && depth < 8) {
+    depth++;
+    if (lock->holder == NULL) {
+      return;
+    }       
+    if ((lock->holder->priority) >= thread->priority) {
+      return;
+    }
+        
+    lock->holder->priority = thread->priority;
+    thread = lock->holder;
+    lock = thread->wait_on_lock;
+  }
+}
+
 
 /* Returns the current thread's priority. */
 int

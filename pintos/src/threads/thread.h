@@ -102,6 +102,10 @@ struct thread
     /* Owned by devices/timer.c. */
     int64_t sleep_end_tick;
 
+    struct lock *wait_on_lock;          /* The lock which the current thread is waiting for*/
+    struct list waiting_thread_list;    /* Thread list waiting for the lock acquired by current thread */
+    struct list_elem thread_list_elem;/* donation list elem*/
+
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
@@ -142,5 +146,9 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+void refresh_priority(void);
+void donate_priority(void);
+void remove_with_lock(struct lock *lock);
 
 #endif /* threads/thread.h */
