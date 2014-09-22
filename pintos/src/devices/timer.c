@@ -100,16 +100,19 @@ timer_compare (const struct list_elem* a, const struct list_elem* b, void* _){
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
 void
-timer_sleep (int64_t ticks) 
+timer_sleep (int64_t t) 
 {
   struct thread* cur = thread_current ();
   enum intr_level level;
 
   ASSERT (intr_get_level () == INTR_ON);
-  cur->sleep_end_tick = timer_ticks () + ticks;
+  cur->sleep_end_tick = timer_ticks () + t;
   level = intr_disable ();
-  list_insert_ordered (&sleeping_list, &cur->elem, timer_compare, NULL);
-  thread_block ();
+  while (cur->sleep_end_tick > ticks)
+  {
+    list_insert_ordered (&sleeping_list, &cur->elem, timer_compare, NULL);
+    thread_block ();
+  }
   intr_set_level (level);
 }
 
