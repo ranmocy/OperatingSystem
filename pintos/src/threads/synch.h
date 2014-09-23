@@ -1,3 +1,14 @@
+/*
+ * Authors: Hao Chen, Kaiming yang, Wanshang Sheng 
+ *
+ * Email: chenh1987@gmail.com, yaxum62@gmail.com, ranmocy@gmail.com
+ *
+ * Version: 1.0.0
+ * 
+ * Description: Implement the arlarm sleep, priority_scheduler and 
+ *              priority donation.
+ */
+
 #ifndef THREADS_SYNCH_H
 #define THREADS_SYNCH_H
 

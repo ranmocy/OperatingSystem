@@ -1,6 +1,13 @@
-/* This file is derived from source code for the Nachos
-   instructional operating system.  The Nachos copyright notice
-   is reproduced in full below. */
+/*
+ * Authors: Hao Chen, Kaiming yang, Wanshang Sheng 
+ *
+ * Email: chenh1987@gmail.com, yaxum62@gmail.com, ranmocy@gmail.com
+ *
+ * Version: 1.0.0
+ * 
+ * Description: Implement the arlarm sleep, priority_scheduler and
+ *              priority donation.
+ */
 
 /* Copyright (c) 1992-1996 The Regents of the University of California.
    All rights reserved.
@@ -83,7 +90,7 @@ sema_down (struct semaphore *sema)
   while (sema->value == 0)
     {
       /*disable the donation*/ 
-      //donate_priority();
+      donate_priority();
       list_insert_ordered(&sema->waiters, &thread_current() -> elem,
                 thread_cmp_func,NULL);
       thread_block ();
