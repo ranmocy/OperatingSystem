@@ -3,7 +3,7 @@
 #include<string.h>
 #include"list.h"
 
-extern void exit(int);
+extern void exit(int);        
 
 int main(int argc, char **argv)
 {

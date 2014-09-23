@@ -1,7 +1,6 @@
 #ifndef THREADS_THREAD_H
 #define THREADS_THREAD_H
 
-#include <alarm.h>
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
@@ -89,18 +88,23 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+    int original_priority;              /* Original Priority */
     struct list_elem allelem;           /* List element for all threads list. */
 
-    /* Shared between thread.c and synch.c. */
+    /* Shared between thread.c, synch.c. and devices/timer.c. */
     struct list_elem elem;              /* List element. */
-
-    // Alarm for sleeping
-    struct alarm alarm;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 #endif
+
+    /* Owned by devices/timer.c. */
+    int64_t sleep_end_tick;
+
+    struct lock *wait_on_lock;          /* The lock which the current thread is waiting for*/
+    struct list waiting_thread_list;    /* Thread list waiting for the lock acquired by current thread */
+    struct list_elem waiting_list_elem;  /* list elem for waiting thread list */
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
@@ -129,6 +133,7 @@ const char *thread_name (void);
 
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
+void test_yield(void);
 
 /* Performs some operation on thread t, given auxiliary data AUX. */
 typedef void thread_action_func (struct thread *t, void *aux);
@@ -141,5 +146,9 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+void refresh_priority(void);
+void donate_priority(void);
+void remove_with_lock(struct lock *lock);
 
 #endif /* threads/thread.h */

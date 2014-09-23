@@ -8,7 +8,7 @@
 
    See vaddr.h for more generic functions and macros for virtual
    addresses.
-
+   
    Virtual addresses are structured as follows:
 
     31                  22 21                  12 11                   0
@@ -18,7 +18,7 @@
 */
 
 /* Page table index (bits 12:21). */
-#define  PTSHIFT PGBITS               /* First page table bit. */
+#define	PTSHIFT PGBITS		           /* First page table bit. */
 #define PTBITS  10                         /* Number of page table bits. */
 #define PTSPAN  (1 << PTBITS << PGBITS)    /* Bytes covered by a page table. */
 #define PTMASK  BITMASK(PTSHIFT, PTBITS)   /* Page table bits (12:21). */
