@@ -433,7 +433,7 @@ void donate_priority(void) {
   }
 }
 
-void remove_with_lock(struct lock *lock) {
+void remove_blocking_thread(struct lock *lock) {
   struct list_elem *elem;
   struct thread *thread;
 

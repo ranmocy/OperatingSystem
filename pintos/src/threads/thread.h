@@ -160,6 +160,6 @@ int thread_get_load_avg (void);
 
 void refresh_priority(void);
 void donate_priority(void);
-void remove_with_lock(struct lock *lock);
+void remove_blocking_thread(struct lock *lock);
 
 #endif /* threads/thread.h */

@@ -278,7 +278,7 @@ lock_release (struct lock *lock)
   enum intr_level old_level = intr_disable();
   lock->holder = NULL;
 
-  remove_with_lock(lock);
+  remove_blocking_thread(lock);
   refresh_priority();
 
   sema_up(&lock -> semaphore);
