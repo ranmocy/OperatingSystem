@@ -82,7 +82,8 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0)
     {
-      donate_priority();
+      /*disable the donation*/ 
+      //donate_priority();
       list_insert_ordered(&sema->waiters, &thread_current() -> elem,
                 thread_cmp_func,NULL);
       thread_block ();
@@ -135,9 +136,7 @@ sema_up (struct semaphore *sema)
                     struct thread, elem));
   }
   sema->value++;
-  //if(!intr_context){
-    test_yield();
-  //}
+  test_yield();
   intr_set_level (old_level);
 }
 
@@ -223,17 +222,15 @@ lock_acquire (struct lock *lock)
   if (lock->holder) {
     thread_current()->wait_on_lock = lock;
 
-    list_insert_ordered(
-                &lock->holder->waiting_thread_list,
+    list_insert_ordered(&lock->holder->waiting_thread_list,
                 &thread_current()->waiting_list_elem,
-                thread_cmp_func, NULL
-      );
-    }
-    sema_down(&lock->semaphore);
-    thread_current()->wait_on_lock = NULL;
-    lock->holder = thread_current();
+                thread_cmp_func, NULL);
+  }
+  sema_down(&lock->semaphore);
+  thread_current()->wait_on_lock = NULL;
+  lock->holder = thread_current();
 
-    intr_set_level(old_level);
+  intr_set_level(old_level);
 }
 
 /* Tries to acquires LOCK and returns true if successful or false

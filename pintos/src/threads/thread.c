@@ -357,8 +357,6 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  //thread_current ()->priority = new_priority;
-  //thread_current ()->original_priority = new_priority;
   enum intr_level old_level;
   int old_priority;
 
@@ -368,9 +366,10 @@ thread_set_priority (int new_priority)
 
   refresh_priority(); //refresh the current priority
 
-  if (old_priority < thread_current()->priority) {
+  /*disable the donation*/ 
+  /*if (old_priority < thread_current()->priority) {
     donate_priority(); //priority donation
-  }
+  }*/
   if (old_priority > thread_current()->priority) {
     test_yield();
   }
@@ -385,7 +384,8 @@ void refresh_priority(void) {
     cur = thread_current();
     cur->priority = cur->original_priority;
 
-    if (list_empty(&cur->waiting_thread_list)) {
+    /*disable the donation*/ 
+    /*if (list_empty(&cur->waiting_thread_list)) {
         return;
     }
 
@@ -394,7 +394,7 @@ void refresh_priority(void) {
 
     if ((high_priority_thread->priority) > (cur->priority)) {
         cur->priority = high_priority_thread->priority;
-    }
+    }*/
 }
 
 
