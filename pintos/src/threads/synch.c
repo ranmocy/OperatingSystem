@@ -83,7 +83,8 @@ sema_down (struct semaphore *sema)
   while (sema->value == 0)
     {
       donate_priority();
-      list_push_back (&sema->waiters, &thread_current ()->elem);
+      list_insert_ordered(&sema->waiters, &thread_current() -> elem,
+                thread_less_func,NULL);
       thread_block ();
     }
   sema->value--;
@@ -124,15 +125,14 @@ void
 sema_up (struct semaphore *sema)
 {
   enum intr_level old_level;
-  struct list_elem *max;
 
   ASSERT (sema != NULL);
 
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters)){   
-    max = list_max (&sema->waiters, thread_less_func, NULL);
-    list_remove(max);
-    thread_unblock (list_entry (max, struct thread, elem));
+    list_sort(&sema->waiters, thread_less_func, NULL);
+    thread_unblock(list_entry(list_pop_back(&sema->waiters),
+                    struct thread, elem));
   }
   sema->value++;
   if(!intr_context){
