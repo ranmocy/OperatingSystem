@@ -40,6 +40,10 @@ void cond_init (struct condition *);
 void cond_wait (struct condition *, struct lock *);
 void cond_signal (struct condition *, struct lock *);
 void cond_broadcast (struct condition *, struct lock *);
+bool thread_less_func(const struct list_elem *a, 
+                   const struct list_elem *b, void *aux);
+bool cmp_sem_priority(const struct list_elem *a,
+    const struct list_elem *b, void *aux);
 
 /* Optimization barrier.
 

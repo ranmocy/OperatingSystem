@@ -104,7 +104,7 @@ struct thread
 
     struct lock *wait_on_lock;          /* The lock which the current thread is waiting for*/
     struct list waiting_thread_list;    /* Thread list waiting for the lock acquired by current thread */
-    struct list_elem thread_list_elem;/* donation list elem*/
+    struct list_elem waiting_list_elem;  /* list elem for waiting thread list */
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */

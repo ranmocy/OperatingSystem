@@ -380,7 +380,7 @@ thread_set_priority (int new_priority)
 /*update the priority with the new value*/
 void refresh_priority(void) {
     struct thread *cur;
-    struct thread *first_thread;
+    struct thread *high_priority_thread;
 
     cur = thread_current();
     cur->priority = cur->original_priority;
@@ -389,14 +389,11 @@ void refresh_priority(void) {
         return;
     }
 
-    first_thread = list_entry(
-            list_front(&cur->waiting_thread_list),
-            struct thread,
-            thread_list_elem
-    );
+    high_priority_thread = list_entry(list_back(&cur->waiting_thread_list),
+            struct thread, waiting_list_elem);
 
-    if ((first_thread->priority) > (cur->priority)) {
-        cur->priority = first_thread->priority;
+    if ((high_priority_thread->priority) > (cur->priority)) {
+        cur->priority = high_priority_thread->priority;
     }
 }
 
@@ -422,6 +419,22 @@ void donate_priority(void) {
     lock->holder->priority = thread->priority;
     thread = lock->holder;
     lock = thread->wait_on_lock;
+  }
+}
+
+void remove_with_lock(struct lock *lock) {
+  struct list_elem *elem;
+  struct thread *thread;
+
+  for (
+    elem = list_begin(&thread_current()->waiting_thread_list);
+    elem != list_end(&thread_current()->waiting_thread_list);
+    elem = list_next(elem)) 
+  {
+    thread = list_entry(elem, struct thread, waiting_list_elem);
+    if (thread->wait_on_lock == lock) {
+      list_remove(elem);
+    }
   }
 }
 
@@ -554,6 +567,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->sleep_end_tick = 0;
   t->magic = THREAD_MAGIC;
 
+  t->wait_on_lock = NULL;
+  list_init(&t->waiting_thread_list);
+
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
@@ -671,21 +687,18 @@ allocate_tid (void)
 
 /*test and yield the thread*/
 void test_yield(void) {
-    struct thread *t;
+  struct thread *t;
 
-    if (list_empty(&ready_list)) {
-        return;
-    }
+  if (list_empty(&ready_list)) {
+    return;
+  }
 
-    t = list_entry(
-            list_front(&ready_list),
-            struct thread,
-            elem
-    );
+  t = list_entry(list_front(&ready_list),
+            struct thread, elem);
 
-    if ((thread_current() -> priority) < t -> priority) {
-        thread_yield();
-    }
+  if ((thread_current()->priority) < t->priority) {
+    thread_yield();
+  }
 }
 
 
