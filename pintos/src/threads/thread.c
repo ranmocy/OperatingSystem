@@ -389,7 +389,7 @@ void refresh_priority(void) {
         return;
     }
 
-    high_priority_thread = list_entry(list_back(&cur->waiting_thread_list),
+    high_priority_thread = list_entry(list_front(&cur->waiting_thread_list),
             struct thread, waiting_list_elem);
 
     if ((high_priority_thread->priority) > (cur->priority)) {

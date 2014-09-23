@@ -34,7 +34,7 @@
 #include "list.h"
 
 /*compare the two thread */
-bool thread_less_func(const struct list_elem *a, 
+bool thread_cmp_func(const struct list_elem *a, 
                    const struct list_elem *b, void *aux)
 {
     struct thread *sa, *sb;
@@ -43,7 +43,7 @@ bool thread_less_func(const struct list_elem *a,
     sb = list_entry(b, struct thread, elem);
 
     /* compare the address of the two block */   
-    return sa->priority < sb->priority;
+    return sa->priority > sb->priority;
 }
 
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
@@ -84,7 +84,7 @@ sema_down (struct semaphore *sema)
     {
       donate_priority();
       list_insert_ordered(&sema->waiters, &thread_current() -> elem,
-                thread_less_func,NULL);
+                thread_cmp_func,NULL);
       thread_block ();
     }
   sema->value--;
@@ -130,14 +130,14 @@ sema_up (struct semaphore *sema)
 
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters)){   
-    list_sort(&sema->waiters, thread_less_func, NULL);
-    thread_unblock(list_entry(list_pop_back(&sema->waiters),
+    list_sort(&sema->waiters, thread_cmp_func, NULL);
+    thread_unblock(list_entry(list_pop_front(&sema->waiters),
                     struct thread, elem));
   }
   sema->value++;
-  if(!intr_context){
+  //if(!intr_context){
     test_yield();
-  }
+  //}
   intr_set_level (old_level);
 }
 
@@ -226,7 +226,7 @@ lock_acquire (struct lock *lock)
     list_insert_ordered(
                 &lock->holder->waiting_thread_list,
                 &thread_current()->waiting_list_elem,
-                thread_less_func, NULL
+                thread_cmp_func, NULL
       );
     }
     sema_down(&lock->semaphore);
@@ -400,12 +400,12 @@ bool cmp_sem_priority(const struct list_elem *a,
         return false;
     }
 
-    list_sort(&sa->semaphore.waiters, thread_less_func, NULL);
-    list_sort(&sb->semaphore.waiters, thread_less_func, NULL);
+    list_sort(&sa->semaphore.waiters, thread_cmp_func, NULL);
+    list_sort(&sb->semaphore.waiters, thread_cmp_func, NULL);
 
-    struct thread *ta = list_entry(list_back(&sa->semaphore.waiters),
+    struct thread *ta = list_entry(list_front(&sa->semaphore.waiters),
             struct thread, elem);
-    struct thread *tb = list_entry(list_back(&sb->semaphore.waiters),
+    struct thread *tb = list_entry(list_front(&sb->semaphore.waiters),
             struct thread, elem);
 
     if ((ta->priority) > (tb->priority)) {
