@@ -1,3 +1,14 @@
+/*
+ * Authors: Hao Chen, Kaiming yang, Wanshang Sheng 
+ *
+ * Email: chenh1987@gmail.com, yaxum62@gmail.com, ranmocy@gmail.com
+ *
+ * Version: 1.0.0
+ * 
+ * Description: Implement the arlarm sleep, priority_scheduler and 
+ *              priority donation.
+ */
+
 #include "threads/thread.h"
 #include <debug.h>
 #include <stddef.h>
@@ -367,9 +378,9 @@ thread_set_priority (int new_priority)
   refresh_priority(); //refresh the current priority
 
   /*disable the donation*/ 
-  /*if (old_priority < thread_current()->priority) {
+  if (old_priority < thread_current()->priority) {
     donate_priority(); //priority donation
-  }*/
+  }
   if (old_priority > thread_current()->priority) {
     test_yield();
   }
@@ -385,7 +396,7 @@ void refresh_priority(void) {
     cur->priority = cur->original_priority;
 
     /*disable the donation*/ 
-    /*if (list_empty(&cur->waiting_thread_list)) {
+    if (list_empty(&cur->waiting_thread_list)) {
         return;
     }
 
@@ -394,7 +405,7 @@ void refresh_priority(void) {
 
     if ((high_priority_thread->priority) > (cur->priority)) {
         cur->priority = high_priority_thread->priority;
-    }*/
+    }
 }
 
 
