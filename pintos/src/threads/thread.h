@@ -158,8 +158,8 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
-void refresh_priority(void);
-void donate_priority(void);
-void remove_blocking_thread(struct lock *lock);
+void refresh_priority (void);
+void donate_priority (void);
+void remove_blocking_thread (struct lock *lock);
 
 #endif /* threads/thread.h */

@@ -377,7 +377,6 @@ thread_set_priority (int new_priority)
 
   refresh_priority(); //refresh the current priority
 
-  /*disable the donation*/ 
   if (old_priority < thread_current()->priority) {
     donate_priority(); //priority donation
   }
@@ -395,7 +394,6 @@ void refresh_priority(void) {
     cur = thread_current();
     cur->priority = cur->original_priority;
 
-    /*disable the donation*/ 
     if (list_empty(&cur->waiting_thread_list)) {
         return;
     }
