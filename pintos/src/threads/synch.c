@@ -278,7 +278,7 @@ lock_release (struct lock *lock)
   lock->holder = NULL;
 
   remove_blocking_thread(lock);
-  refresh_priority();
+  refresh_priority(thread_current());
 
   sema_up(&lock -> semaphore);
   intr_set_level(old_level);

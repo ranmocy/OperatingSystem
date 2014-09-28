@@ -204,6 +204,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
     if (nthread->sleep_end_tick <= ticks){
       list_pop_front (&sleeping_list);
       thread_unblock (nthread);
+	  intr_yield_on_return();
     }
     else
       break;

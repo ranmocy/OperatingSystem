@@ -58,6 +58,7 @@ struct thread_info
     int64_t start_time;
     int tick_count;
     int nice;
+	int pri;
   };
 
 static void load_thread (void *aux);
@@ -101,7 +102,7 @@ test_mlfqs_fair (int thread_cnt, int nice_min, int nice_step)
   timer_sleep (40 * TIMER_FREQ);
   
   for (i = 0; i < thread_cnt; i++)
-    msg ("Thread %d received %d ticks.", i, info[i].tick_count);
+    msg ("Thread %d received %d ticks. pri %d", i, info[i].tick_count, info[i].pri);
 }
 
 static void
@@ -121,4 +122,5 @@ load_thread (void *ti_)
         ti->tick_count++;
       last_time = cur_time;
     }
+  ti->pri = thread_current()->recent_cpu;
 }

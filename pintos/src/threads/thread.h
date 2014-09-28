@@ -100,6 +100,9 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     int original_priority;              /* Original Priority */
+	int nice;							/* Nice value for advanced scheduler. */
+	int recent_cpu;						/* recent_cpu for advanced scheduler. */
+
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c, synch.c. and devices/timer.c. */
@@ -158,7 +161,7 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
-void refresh_priority (void);
+void refresh_priority (struct thread*);
 void donate_priority (void);
 void remove_blocking_thread (struct lock *lock);
 
