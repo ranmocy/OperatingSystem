@@ -46,6 +46,10 @@ process_execute (const char *file_name)
 }
 
 typedef void(*return_addr)();
+struct main_arg{
+	int argc;
+	char** argv;
+};
 
 /* A thread function that loads a user process and starts it
    running. */
@@ -54,11 +58,19 @@ start_process (void *file_name_)
 {
   char *file_name = file_name_;
   struct intr_frame if_;
-  int*argc;
-  char ** argv;
-  char spliter;
+  struct main_arg* arg;
+  char spliter=0;
   int i = 0;
   bool success;
+
+  while (file_name[i] != '\0'){
+	  if (file_name[i] == ' '){
+		  spliter = ' ';
+		  file_name[i] = '\0';
+		  break;
+	  }
+	  i++;
+  }
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -67,6 +79,9 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
 
+  if (spliter != 0)
+	  file_name[i] = spliter;
+  i = 0;
   
   /* If load failed, quit. */
   if (!success){
@@ -75,9 +90,8 @@ start_process (void *file_name_)
   }
 
   /* Set arguments. Use head of stack frame as temporary space. */
-  argc = (int*)pg_round_down(if_.esp - 1);
-  argv = (char**)(argc + 1);
-  *argc = 0;
+  arg = (struct main_arg*)pg_round_down(if_.esp - 1);
+  arg->argc = 0;
 
   while (file_name[i] != '\0'){
 	  if (file_name[i] == ' '){
@@ -98,7 +112,7 @@ start_process (void *file_name_)
 		  memmove(if_.esp - (j - i + 1), file_name + i, j - i);
 		  *((char*)(if_.esp - 1)) = '\0';
 		  if_.esp -= (j - i + 1);
-		  argv[(*argc)++] = if_.esp;
+		  ((char**)(arg+1))[(arg->argc)++] = if_.esp;
 
 		  if (file_name[j] == '\0')
 			  break;
@@ -107,15 +121,13 @@ start_process (void *file_name_)
   }
 
   {
-	  int arg_len = sizeof(int) + sizeof(char**) * (*argc);
+	  int arg_len = sizeof(struct main_arg) + sizeof(char**) * (arg->argc+1);
 	  if_.esp = (void*)(((int)if_.esp - arg_len) / sizeof(int) * sizeof(int));
-	  memmove(if_.esp, argc, arg_len);
-	  argc = if_.esp;
-	  argv = (int*)(argv - 1);
-	  *argv = *((int*)argc);
-	  *argc = (char*)(argc + 1);
-
-	  if_.esp = (void*)argc - sizeof(return_addr);
+	  memmove(if_.esp, arg, arg_len);
+	  arg = (struct main_arg*) if_.esp;
+	  ((char**)(arg + 1))[arg->argc] = NULL;
+	  arg->argv = (char**)(arg + 1);
+	  if_.esp -=  sizeof(return_addr);
 	  *((return_addr*)(if_.esp)) = 0x0;
   }
   palloc_free_page(file_name);
