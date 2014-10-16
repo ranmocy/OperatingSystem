@@ -24,6 +24,9 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 struct process_init_arg{
 	struct thread* parent;
 	struct semaphore* sema_relation;
+	int argc;
+	int total_len;
+	bool load_success;
 	char fn[0];
 };
 
@@ -37,6 +40,7 @@ process_execute (const char *file_name)
   struct process_init_arg *fn_copy;
   struct semaphore sema_relation;
   tid_t tid;
+  int i = 0;
 
   sema_init(&sema_relation,0);
 
@@ -47,15 +51,33 @@ process_execute (const char *file_name)
   fn_copy->parent = thread_current();
   fn_copy->sema_relation = &sema_relation;
   strlcpy (fn_copy->fn, file_name, PGSIZE);
+  fn_copy->argc = 0;
+  fn_copy->total_len = 0;
+  while (fn_copy->fn[i] != 0){
+	  if (fn_copy->fn[i] == ' '){
+		  fn_copy->fn[i++] = 0;
+		  continue;
+	  }
+	  fn_copy->argc++;
+	  while (fn_copy->fn[i] != ' ' && fn_copy->fn[i] != 0){
+		  fn_copy->total_len++;
+		  i++;
+	  }
+  }
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (fn_copy->fn, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
 
   sema_down(&sema_relation);
-
-  return tid;
+  if (fn_copy->load_success)
+	  return tid;
+  else{
+	  palloc_free_page(fn_copy);
+	  process_wait(tid);
+	  return -1;
+  }
 }
 
 typedef void(*return_addr)();
@@ -72,9 +94,6 @@ start_process (void *arg_)
 	struct thread* t;
   struct process_init_arg *proc_arg = arg_;
   struct intr_frame if_;
-  struct main_arg* arg;
-  char spliter=0;
-  int i = 0;
   bool success;
   
   // build relationship
@@ -82,18 +101,7 @@ start_process (void *arg_)
   t->parent = proc_arg->parent;
   lock_acquire(&t->parent->children_lock);
   list_push_back(&t->parent->children, &t->child_elem);
-  lock_release(&t->parent->children_lock);
-  sema_up(proc_arg->sema_relation); 
-
-  // get file name
-  while (proc_arg->fn[i] != '\0'){
-	  if (proc_arg->fn[i] == ' '){
-		  spliter = ' ';
-		  proc_arg->fn[i] = '\0';
-		  break;
-	  }
-	  i++;
-  }
+  lock_release(&t->parent->children_lock); 
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -102,55 +110,40 @@ start_process (void *arg_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load(proc_arg->fn, &if_.eip, &if_.esp);
 
-  if (spliter != 0)
-	  proc_arg->fn[i] = spliter;
-  i = 0;
+  
   
   /* If load failed, quit. */
   if (!success){
-	  palloc_free_page(arg_);
+	  proc_arg->load_success = false;
+	  sema_up(proc_arg->sema_relation);
 	  thread_exit();
   }
-
-  /* Set arguments. Use head of stack frame as temporary space. */
-  arg = (struct main_arg*)pg_round_down(if_.esp - 1);
-  arg->argc = 0;
-
-  while (proc_arg->fn[i] != '\0'){
-	  if (proc_arg->fn[i] == ' '){
-		  i++;
-		  continue;
-	  }
-	  else{
-		  int j = i+1;
-		  spliter = proc_arg->fn[i];
-		  if (spliter != '"' && spliter != '\'')
-			  spliter = ' ';
-		  else
-			  i++;
-		  while (proc_arg->fn[j] != spliter && proc_arg->fn[j] != '\0')
-			  j++;
-		  ASSERT(!(proc_arg->fn[j] == '\0' && spliter != ' '));
-
-		  memmove(if_.esp - (j - i + 1), proc_arg->fn + i, j - i);
-		  *((char*)(if_.esp - 1)) = '\0';
-		  if_.esp -= (j - i + 1);
-		  ((char**)(arg+1))[(arg->argc)++] = if_.esp;
-
-		  if (proc_arg->fn[j] == '\0')
-			  break;
-		  i = j + 1;
-	  }
-  }
-
+  proc_arg->load_success = true;
+  sema_up(proc_arg->sema_relation);
+  /* Set arguments.  */
   {
-	  int arg_len = sizeof(struct main_arg) + sizeof(char**) * (arg->argc+1);
-	  if_.esp = (void*)(((int)if_.esp - arg_len) / sizeof(int) * sizeof(int));
-	  memmove(if_.esp, arg, arg_len);
-	  arg = (struct main_arg*) if_.esp;
-	  ((char**)(arg + 1))[arg->argc] = NULL;
-	  arg->argv = (char**)(arg + 1);
-	  if_.esp -=  sizeof(return_addr);
+	  int i;
+	  char *str_dest, * str_src;
+	  struct main_arg* main_arg = if_.esp - proc_arg->total_len - proc_arg->argc 
+		  - (proc_arg->argc +1)* sizeof(char*) - sizeof(struct main_arg);
+	  main_arg = (struct main_arg*)(((int)main_arg  >> 2) << 2);
+	  main_arg->argc = proc_arg->argc;
+	  main_arg->argv = (char**)(main_arg + 1);
+	  str_src = proc_arg->fn;
+	  str_dest = (char*)(main_arg->argv + main_arg->argc + 1);
+	  i = 0;
+	  while (i < main_arg->argc){
+		  main_arg->argv[i++] = str_dest;
+		  while (*str_src == 0)
+			  str_src++;
+		  while (*str_src != 0)
+			  *(str_dest++) = *(str_src++);
+		  *(str_dest++) = 0;
+	  }
+	  main_arg->argv[i] = NULL;
+
+	  
+	  if_.esp =  (void*)main_arg - sizeof(return_addr);
 	  *((return_addr*)(if_.esp)) = 0x0;
   }
   palloc_free_page(arg_);
@@ -200,6 +193,7 @@ void
 process_exit ()
 {
   struct thread *cur = thread_current ();
+  struct list_elem* e;
   uint32_t *pd;
 
   /* Destroy the current process's page directory and switch back
@@ -218,8 +212,18 @@ process_exit ()
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+  // release children
+  lock_acquire(&cur->children_lock);
+  for (e = list_begin(&cur->children); e != list_end(&cur->children); e = list_next(e))
+	  sema_up(&(list_entry(e, struct thread, child_elem)->sema_exit_ack));
+  lock_release(&cur->children_lock);
+
   sema_up(&cur->sema_exit);
   sema_down(&cur->sema_exit_ack);
+
+  lock_acquire(&cur->parent->children_lock);
+  list_remove(&cur->child_elem);
+  lock_release(&cur->parent->children_lock);
 }
 
 /* Sets up the CPU for running user code in the current

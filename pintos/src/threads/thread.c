@@ -667,6 +667,8 @@ init_thread (struct thread *t, const char *name, int priority)
   lock_init(&t->children_lock);
   sema_init(&t->sema_exit, 0);
   sema_init(&t->sema_exit_ack, 0);
+  list_init(&t->file_list);
+  t->fd = 2;
 #endif
   t->magic = THREAD_MAGIC;
 

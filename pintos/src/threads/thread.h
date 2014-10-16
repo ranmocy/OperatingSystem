@@ -119,6 +119,9 @@ struct thread
 	struct list_elem child_elem;
 	struct lock children_lock;
 	struct semaphore sema_exit, sema_exit_ack;
+
+	struct list file_list;
+	int fd;
 #endif
 
     /* Owned by devices/timer.c. */
