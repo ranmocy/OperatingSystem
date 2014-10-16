@@ -81,6 +81,10 @@ kill (struct intr_frame *f)
      
   /* The interrupt frame's code segment value tells us where the
      exception originated. */
+
+	thread_current()->ret = -1;
+	printf("%s: exit(-1)\n", thread_current()->name);
+
   switch (f->cs)
     {
     case SEL_UCSEG:

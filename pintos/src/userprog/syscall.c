@@ -135,7 +135,13 @@ vaddr_to_phyaddr(void *vaddr){
 
 static void
 syscall_exit(int rcode){
+	struct list_elem* e;
 	struct thread* cur = thread_current();
+	while (!list_empty(&cur->file_list))
+	{
+		e = list_begin(&cur->file_list);
+		close(list_entry(e, struct process_file_record, elem)->fd);
+	}
 	printf("%s: exit(%d)\n", cur->name, rcode);
 	cur->ret = rcode;
 	thread_exit();
