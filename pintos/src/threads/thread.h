@@ -15,6 +15,8 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "synch.h"
+#include "filesys/file.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -111,6 +113,17 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+	
+	int ret;
+	struct thread* parent;
+	struct list children;
+	struct list_elem child_elem;
+	struct lock children_lock;
+	struct semaphore sema_exit, sema_exit_ack;
+
+	struct list file_list;
+	int fd;
+	struct file* file;
 #endif
 
     /* Owned by devices/timer.c. */

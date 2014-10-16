@@ -662,6 +662,14 @@ init_thread (struct thread *t, const char *name, int priority)
   t->nice = 0;
   t->recent_cpu = 0;
   t->sleep_end_tick = 0;
+#ifdef USERPROG
+  list_init(&t->children);
+  lock_init(&t->children_lock);
+  sema_init(&t->sema_exit, 0);
+  sema_init(&t->sema_exit_ack, 0);
+  list_init(&t->file_list);
+  t->fd = 2;
+#endif
   t->magic = THREAD_MAGIC;
 
   t->wait_on_lock = NULL;
