@@ -21,6 +21,12 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
+struct process_init_arg{
+	struct thread* parent;
+	struct semaphore* sema_relation;
+	char fn[0];
+};
+
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -28,20 +34,27 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
-  char *fn_copy;
+  struct process_init_arg *fn_copy;
+  struct semaphore sema_relation;
   tid_t tid;
 
-  /* Make a copy of FILE_NAME.
-     Otherwise there's a race between the caller and load(). */
+  sema_init(&sema_relation,0);
+
+  /* get a page for passing argument. */
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
-  strlcpy (fn_copy, file_name, PGSIZE);
+  fn_copy->parent = thread_current();
+  fn_copy->sema_relation = &sema_relation;
+  strlcpy (fn_copy->fn, file_name, PGSIZE);
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
+
+  sema_down(&sema_relation);
+
   return tid;
 }
 
@@ -54,19 +67,29 @@ struct main_arg{
 /* A thread function that loads a user process and starts it
    running. */
 static void
-start_process (void *file_name_)
+start_process (void *arg_)
 {
-  char *file_name = file_name_;
+	struct thread* t;
+  struct process_init_arg *proc_arg = arg_;
   struct intr_frame if_;
   struct main_arg* arg;
   char spliter=0;
   int i = 0;
   bool success;
+  
+  // build relationship
+  t = thread_current();
+  t->parent = proc_arg->parent;
+  lock_acquire(&t->parent->children_lock);
+  list_push_back(&t->parent->children, &t->child_elem);
+  lock_release(&t->parent->children_lock);
+  sema_up(proc_arg->sema_relation); 
 
-  while (file_name[i] != '\0'){
-	  if (file_name[i] == ' '){
+  // get file name
+  while (proc_arg->fn[i] != '\0'){
+	  if (proc_arg->fn[i] == ' '){
 		  spliter = ' ';
-		  file_name[i] = '\0';
+		  proc_arg->fn[i] = '\0';
 		  break;
 	  }
 	  i++;
@@ -77,15 +100,15 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load(proc_arg->fn, &if_.eip, &if_.esp);
 
   if (spliter != 0)
-	  file_name[i] = spliter;
+	  proc_arg->fn[i] = spliter;
   i = 0;
   
   /* If load failed, quit. */
   if (!success){
-	  palloc_free_page(file_name);
+	  palloc_free_page(arg_);
 	  thread_exit();
   }
 
@@ -93,28 +116,28 @@ start_process (void *file_name_)
   arg = (struct main_arg*)pg_round_down(if_.esp - 1);
   arg->argc = 0;
 
-  while (file_name[i] != '\0'){
-	  if (file_name[i] == ' '){
+  while (proc_arg->fn[i] != '\0'){
+	  if (proc_arg->fn[i] == ' '){
 		  i++;
 		  continue;
 	  }
 	  else{
 		  int j = i+1;
-		  spliter = file_name[i];
+		  spliter = proc_arg->fn[i];
 		  if (spliter != '"' && spliter != '\'')
 			  spliter = ' ';
 		  else
 			  i++;
-		  while (file_name[j] != spliter && file_name[j] != '\0')
+		  while (proc_arg->fn[j] != spliter && proc_arg->fn[j] != '\0')
 			  j++;
-		  ASSERT(!(file_name[j] == '\0' && spliter != ' '));
+		  ASSERT(!(proc_arg->fn[j] == '\0' && spliter != ' '));
 
-		  memmove(if_.esp - (j - i + 1), file_name + i, j - i);
+		  memmove(if_.esp - (j - i + 1), proc_arg->fn + i, j - i);
 		  *((char*)(if_.esp - 1)) = '\0';
 		  if_.esp -= (j - i + 1);
 		  ((char**)(arg+1))[(arg->argc)++] = if_.esp;
 
-		  if (file_name[j] == '\0')
+		  if (proc_arg->fn[j] == '\0')
 			  break;
 		  i = j + 1;
 	  }
@@ -130,7 +153,7 @@ start_process (void *file_name_)
 	  if_.esp -=  sizeof(return_addr);
 	  *((return_addr*)(if_.esp)) = 0x0;
   }
-  palloc_free_page(file_name);
+  palloc_free_page(arg_);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -152,14 +175,29 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid) 
 {
-  return -1;
+	struct list_elem* e;
+	struct thread* t = thread_current();
+	lock_acquire(&t->children_lock);
+	for (e = list_begin(&t->children); e != list_end(&t->children); e = list_next(e)){
+		struct thread* child = list_entry(e, struct thread, child_elem);
+		if (child->tid == child_tid){
+			lock_release(&t->children_lock);
+			int ret;
+			sema_down(&child->sema_exit);
+			ret = child->ret;
+			sema_up(&child->sema_exit_ack);
+			return ret;
+		}
+	}
+	lock_release(&t->children_lock);
+	return -1;
 }
 
 /* Free the current process's resources. */
 void
-process_exit (void)
+process_exit ()
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
@@ -180,6 +218,8 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+  sema_up(&cur->sema_exit);
+  sema_down(&cur->sema_exit_ack);
 }
 
 /* Sets up the CPU for running user code in the current
