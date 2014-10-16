@@ -45,6 +45,8 @@ process_execute (const char *file_name)
   return tid;
 }
 
+typedef void(*return_addr)();
+
 /* A thread function that loads a user process and starts it
    running. */
 static void
@@ -52,6 +54,10 @@ start_process (void *file_name_)
 {
   char *file_name = file_name_;
   struct intr_frame if_;
+  int*argc;
+  char ** argv;
+  char spliter;
+  int i = 0;
   bool success;
 
   /* Initialize interrupt frame and load executable. */
@@ -61,10 +67,58 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
 
+  
   /* If load failed, quit. */
-  palloc_free_page (file_name);
-  if (!success) 
-    thread_exit ();
+  if (!success){
+	  palloc_free_page(file_name);
+	  thread_exit();
+  }
+
+  /* Set arguments. Use head of stack frame as temporary space. */
+  argc = (int*)pg_round_down(if_.esp - 1);
+  argv = (char**)(argc + 1);
+  *argc = 0;
+
+  while (file_name[i] != '\0'){
+	  if (file_name[i] == ' '){
+		  i++;
+		  continue;
+	  }
+	  else{
+		  int j = i+1;
+		  spliter = file_name[i];
+		  if (spliter != '"' && spliter != '\'')
+			  spliter = ' ';
+		  else
+			  i++;
+		  while (file_name[j] != spliter && file_name[j] != '\0')
+			  j++;
+		  ASSERT(!(file_name[j] == '\0' && spliter != ' '));
+
+		  memmove(if_.esp - (j - i + 1), file_name + i, j - i);
+		  *((char*)(if_.esp - 1)) = '\0';
+		  if_.esp -= (j - i + 1);
+		  argv[(*argc)++] = if_.esp;
+
+		  if (file_name[j] == '\0')
+			  break;
+		  i = j + 1;
+	  }
+  }
+
+  {
+	  int arg_len = sizeof(int) + sizeof(char**) * (*argc);
+	  if_.esp = (void*)(((int)if_.esp - arg_len) / sizeof(int) * sizeof(int));
+	  memmove(if_.esp, argc, arg_len);
+	  argc = if_.esp;
+	  argv = (int*)(argv - 1);
+	  *argv = *((int*)argc);
+	  *argc = (char*)(argc + 1);
+
+	  if_.esp = (void*)argc - sizeof(return_addr);
+	  *((return_addr*)(if_.esp)) = 0x0;
+  }
+  palloc_free_page(file_name);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
