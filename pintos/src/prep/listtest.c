@@ -3,7 +3,7 @@
 #include<string.h>
 #include"list.h"
 
-extern void exit(int);        
+extern void exit(int);
 
 #define MAX_STR_LEN 128
 
@@ -31,7 +31,7 @@ struct server_node *find_server(struct list *l, char *name)
 {
     struct list_elem *e;
     struct server_node *rv = NULL;
-    
+
     for (e = list_begin(l); e != list_end(l); e = list_next(e)) {
         struct server_node *s = list_entry(e, struct server_node, elem);
         if (strcmp(s->name, name) == 0) {
@@ -39,7 +39,7 @@ struct server_node *find_server(struct list *l, char *name)
             break;
         }
     }
-    
+
     return rv;
 }
 
@@ -48,11 +48,11 @@ int main(int argc, char **argv)
     struct server_node *s;
     struct server_node s1, s2, s3, s4;
     list_init(&server_list);
-    
+
     s = &s1;
     strlcpy(s->name, "Foo", MAX_STR_LEN);
     list_push_back(&server_list, &s->elem);
-    
+
     s = &s2;
     strlcpy(s->name, "Goo", MAX_STR_LEN);
     list_push_back(&server_list, &s->elem);
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
     s = &s4;
     strlcpy(s->name, "Zoo", MAX_STR_LEN);
     list_push_back(&server_list, &s->elem);
-        
+
     print_server_list(&server_list);
 
     if ((s = find_server(&server_list, "Boo")) != NULL) {
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
     }
 
     print_server_list(&server_list);
-    
+
     return 0;
 }
 

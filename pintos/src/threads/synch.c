@@ -1,10 +1,10 @@
 /*
- * Authors: Hao Chen, Kaiming yang, Wanshang Sheng 
+ * Authors: Hao Chen, Kaiming yang, Wanshang Sheng
  *
  * Email: chenh1987@gmail.com, yaxum62@gmail.com, ranmocy@gmail.com
  *
  * Version: 1.0.0
- * 
+ *
  * Description: Implement the arlarm sleep, priority_scheduler and
  *              priority donation.
  */
@@ -41,15 +41,15 @@
 #include "list.h"
 
 /*compare the two thread */
-bool thread_cmp_func(const struct list_elem *a, 
+bool thread_cmp_func(const struct list_elem *a,
                    const struct list_elem *b, void *aux)
 {
     struct thread *sa, *sb;
-    
+
     sa = list_entry(a, struct thread, elem);
     sb = list_entry(b, struct thread, elem);
 
-    /* compare the address of the two block */   
+    /* compare the address of the two block */
     return sa->priority > sb->priority;
 }
 
@@ -135,7 +135,7 @@ sema_up (struct semaphore *sema)
   ASSERT (sema != NULL);
 
   old_level = intr_disable ();
-  if (!list_empty (&sema->waiters)){   
+  if (!list_empty (&sema->waiters)){
     list_sort(&sema->waiters, thread_cmp_func, NULL);
     thread_unblock(list_entry(list_pop_front(&sema->waiters),
                     struct thread, elem));
@@ -391,7 +391,7 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 }
 
 bool cmp_sem_priority(const struct list_elem *a,
-                      const struct list_elem *b, void *aux) 
+                      const struct list_elem *b, void *aux)
 {
   struct semaphore_elem *sa = list_entry(a, struct semaphore_elem, elem);
   struct semaphore_elem *sb = list_entry(b, struct semaphore_elem, elem);

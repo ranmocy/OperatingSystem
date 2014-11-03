@@ -1,11 +1,11 @@
 /*
- * Authors: Hao Chen, Kaiming yang, Wanshang Sheng 
+ * Authors: Hao Chen, Kaiming yang, Wanshang Sheng
  *
  * Email: chenh1987@gmail.com, yaxum62@gmail.com, ranmocy@gmail.com
  *
  * Version: 1.0.0
- * 
- * Description: Implement the arlarm sleep, priority_scheduler and 
+ *
+ * Description: Implement the arlarm sleep, priority_scheduler and
  *              priority donation.
  */
 
@@ -102,8 +102,8 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     int original_priority;              /* Original Priority */
-	int nice;							/* Nice value for advanced scheduler. */
-	int recent_cpu;						/* recent_cpu for advanced scheduler. */
+    int nice;                           /* Nice value for advanced scheduler. */
+    int recent_cpu;                     /* recent_cpu for advanced scheduler. */
 
     struct list_elem allelem;           /* List element for all threads list. */
 
@@ -113,17 +113,17 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
-	
-	int ret;
-	struct thread* parent;
-	struct list children;
-	struct list_elem child_elem;
-	struct lock children_lock;
-	struct semaphore sema_exit, sema_exit_ack;
 
-	struct list file_list;
-	int fd;
-	struct file* file;
+    int ret;
+    struct thread* parent;
+    struct list children;
+    struct list_elem child_elem;
+    struct lock children_lock;
+    struct semaphore sema_exit, sema_exit_ack;
+
+    struct list file_list;
+    int fd;
+    struct file* file;
 #endif
 
     /* Owned by devices/timer.c. */
