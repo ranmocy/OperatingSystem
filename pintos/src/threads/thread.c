@@ -132,12 +132,12 @@ thread_init (void)
 
   lock_init (&tid_lock);
   if (thread_mlfqs){
-	  struct list* lp = ready_list;
-	  while (lp < READY_LIST_END)
-		list_init (lp++);
+    struct list* lp = ready_list;
+    while (lp < READY_LIST_END)
+    list_init (lp++);
   }
   else
-	  list_init (ready_list);
+    list_init (ready_list);
   list_init (&all_list);
 
   /* Set up a thread structure for the running thread. */
