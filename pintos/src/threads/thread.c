@@ -145,6 +145,9 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+#ifdef VM
+  page_table_init (initial_thread->page_table);
+#endif
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -374,6 +377,10 @@ void
 thread_exit (void)
 {
   ASSERT (!intr_context ());
+
+#ifdef VM
+  page_table_destroy (&thread_current()->page_table);
+#endif
 
 #ifdef USERPROG
   process_exit ();
