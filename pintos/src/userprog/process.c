@@ -23,12 +23,12 @@ static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
 struct process_init_arg{
-	struct thread* parent;
-	struct semaphore* sema_relation;
-	int argc;
-	int total_len;
-	bool load_success;
-	char fn[0];
+  struct thread* parent;
+  struct semaphore* sema_relation;
+  int argc;
+  int total_len;
+  bool load_success;
+  char fn[0];
 };
 
 /* Starts a new thread running a user program loaded from
@@ -55,15 +55,15 @@ process_execute (const char *file_name)
   fn_copy->argc = 0;
   fn_copy->total_len = 0;
   while (fn_copy->fn[i] != 0){
-	  if (fn_copy->fn[i] == ' '){
-		  fn_copy->fn[i++] = 0;
-		  continue;
-	  }
-	  fn_copy->argc++;
-	  while (fn_copy->fn[i] != ' ' && fn_copy->fn[i] != 0){
-		  fn_copy->total_len++;
-		  i++;
-	  }
+    if (fn_copy->fn[i] == ' '){
+      fn_copy->fn[i++] = 0;
+      continue;
+    }
+    fn_copy->argc++;
+    while (fn_copy->fn[i] != ' ' && fn_copy->fn[i] != 0){
+      fn_copy->total_len++;
+      i++;
+    }
   }
 
   /* Create a new thread to execute FILE_NAME. */
@@ -73,18 +73,18 @@ process_execute (const char *file_name)
 
   sema_down(&sema_relation);
   if (fn_copy->load_success)
-	  return tid;
+    return tid;
   else{
-	  frame_free(fn_copy);
-	  process_wait(tid);
-	  return -1;
+    frame_free(fn_copy);
+    process_wait(tid);
+    return -1;
   }
 }
 
 typedef void(*return_addr)();
 struct main_arg{
-	int argc;
-	char** argv;
+  int argc;
+  char** argv;
 };
 
 /* A thread function that loads a user process and starts it
@@ -92,7 +92,7 @@ struct main_arg{
 static void
 start_process (void *arg_)
 {
-	struct thread* t;
+  struct thread* t;
   struct process_init_arg *proc_arg = arg_;
   struct intr_frame if_;
   bool success;
@@ -115,37 +115,37 @@ start_process (void *arg_)
 
   /* If load failed, quit. */
   if (!success){
-	  proc_arg->load_success = false;
-	  sema_up(proc_arg->sema_relation);
-	  thread_exit();
+    proc_arg->load_success = false;
+    sema_up(proc_arg->sema_relation);
+    thread_exit();
   }
   proc_arg->load_success = true;
   sema_up(proc_arg->sema_relation);
   /* Set arguments.  */
   {
-	  int i;
-	  char *str_dest, * str_src;
-	  struct main_arg* main_arg = if_.esp - proc_arg->total_len - proc_arg->argc
-		  - (proc_arg->argc +1)* sizeof(char*) - sizeof(struct main_arg);
-	  main_arg = (struct main_arg*)(((int)main_arg  >> 2) << 2);
-	  main_arg->argc = proc_arg->argc;
-	  main_arg->argv = (char**)(main_arg + 1);
-	  str_src = proc_arg->fn;
-	  str_dest = (char*)(main_arg->argv + main_arg->argc + 1);
-	  i = 0;
-	  while (i < main_arg->argc){
-		  main_arg->argv[i++] = str_dest;
-		  while (*str_src == 0)
-			  str_src++;
-		  while (*str_src != 0)
-			  *(str_dest++) = *(str_src++);
-		  *(str_dest++) = 0;
-	  }
-	  main_arg->argv[i] = NULL;
+    int i;
+    char *str_dest, * str_src;
+    struct main_arg* main_arg = if_.esp - proc_arg->total_len - proc_arg->argc
+      - (proc_arg->argc +1)* sizeof(char*) - sizeof(struct main_arg);
+    main_arg = (struct main_arg*)(((int)main_arg  >> 2) << 2);
+    main_arg->argc = proc_arg->argc;
+    main_arg->argv = (char**)(main_arg + 1);
+    str_src = proc_arg->fn;
+    str_dest = (char*)(main_arg->argv + main_arg->argc + 1);
+    i = 0;
+    while (i < main_arg->argc){
+      main_arg->argv[i++] = str_dest;
+      while (*str_src == 0)
+        str_src++;
+      while (*str_src != 0)
+        *(str_dest++) = *(str_src++);
+      *(str_dest++) = 0;
+    }
+    main_arg->argv[i] = NULL;
 
 
-	  if_.esp =  (void*)main_arg - sizeof(return_addr);
-	  *((return_addr*)(if_.esp)) = 0x0;
+    if_.esp =  (void*)main_arg - sizeof(return_addr);
+    *((return_addr*)(if_.esp)) = 0x0;
   }
   frame_free(arg_);
 
@@ -171,22 +171,22 @@ start_process (void *arg_)
 int
 process_wait (tid_t child_tid)
 {
-	struct list_elem* e;
-	struct thread* t = thread_current();
-	lock_acquire(&t->children_lock);
-	for (e = list_begin(&t->children); e != list_end(&t->children); e = list_next(e)){
-		struct thread* child = list_entry(e, struct thread, child_elem);
-		if (child->tid == child_tid){
-			lock_release(&t->children_lock);
-			int ret;
-			sema_down(&child->sema_exit);
-			ret = child->ret;
-			sema_up(&child->sema_exit_ack);
-			return ret;
-		}
-	}
-	lock_release(&t->children_lock);
-	return -1;
+  struct list_elem* e;
+  struct thread* t = thread_current();
+  lock_acquire(&t->children_lock);
+  for (e = list_begin(&t->children); e != list_end(&t->children); e = list_next(e)){
+    struct thread* child = list_entry(e, struct thread, child_elem);
+    if (child->tid == child_tid){
+      lock_release(&t->children_lock);
+      int ret;
+      sema_down(&child->sema_exit);
+      ret = child->ret;
+      sema_up(&child->sema_exit_ack);
+      return ret;
+    }
+  }
+  lock_release(&t->children_lock);
+  return -1;
 }
 
 /* Free the current process's resources. */
@@ -216,15 +216,15 @@ process_exit ()
   // release children
   lock_acquire(&cur->children_lock);
   for (e = list_begin(&cur->children); e != list_end(&cur->children); e = list_next(e))
-	  sema_up(&(list_entry(e, struct thread, child_elem)->sema_exit_ack));
+    sema_up(&(list_entry(e, struct thread, child_elem)->sema_exit_ack));
   lock_release(&cur->children_lock);
 
   sema_up(&cur->sema_exit);
   sema_down(&cur->sema_exit_ack);
 
   if (cur->file != NULL){
-	  file_allow_write(cur->file);
-	  file_close(cur->file);
+    file_allow_write(cur->file);
+    file_close(cur->file);
   }
 
   lock_acquire(&cur->parent->children_lock);
@@ -366,11 +366,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
     {
       struct Elf32_Phdr phdr;
 
-	  if (file_ofs < 0 || file_ofs > file_length(t->file))
+    if (file_ofs < 0 || file_ofs > file_length(t->file))
         goto done;
-	  file_seek(t->file, file_ofs);
+    file_seek(t->file, file_ofs);
 
-	  if (file_read(t->file, &phdr, sizeof phdr) != sizeof phdr)
+    if (file_read(t->file, &phdr, sizeof phdr) != sizeof phdr)
         goto done;
       file_ofs += sizeof phdr;
       switch (phdr.p_type)
@@ -387,7 +387,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
         case PT_SHLIB:
           goto done;
         case PT_LOAD:
-			if (validate_segment(&phdr, t->file))
+      if (validate_segment(&phdr, t->file))
             {
               bool writable = (phdr.p_flags & PF_W) != 0;
               uint32_t file_page = phdr.p_offset & ~PGMASK;
@@ -409,7 +409,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
                   read_bytes = 0;
                   zero_bytes = ROUND_UP (page_offset + phdr.p_memsz, PGSIZE);
                 }
-			  if (!load_segment(t->file, file_page, (void *)mem_page,
+        if (!load_segment(t->file, file_page, (void *)mem_page,
                                  read_bytes, zero_bytes, writable))
                 goto done;
             }
