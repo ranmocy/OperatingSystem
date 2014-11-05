@@ -17,7 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
-#include "vm/vm.h"
+#include "vm/frame.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -46,7 +46,7 @@ process_execute (const char *file_name)
   sema_init(&sema_relation,0);
 
   /* get a page for passing argument. */
-  fn_copy = frame_alloc (0);
+  fn_copy = frame_alloc (PAL_NONE);
   if (fn_copy == NULL)
     return TID_ERROR;
   fn_copy->parent = thread_current();

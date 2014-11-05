@@ -6,6 +6,7 @@
 /* How to allocate pages. */
 enum palloc_flags
   {
+    PAL_NONE = 000,             /* Normal */
     PAL_ASSERT = 001,           /* Panic on failure. */
     PAL_ZERO = 002,             /* Zero page contents. */
     PAL_USER = 004              /* User page. */

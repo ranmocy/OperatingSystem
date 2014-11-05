@@ -146,7 +146,7 @@ thread_init (void)
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
 #ifdef VM
-  page_table_init (initial_thread->page_table);
+  page_table_init (&initial_thread->page_table);
 #endif
 }
 
