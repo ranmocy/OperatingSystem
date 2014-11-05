@@ -17,6 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "vm/vm.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -45,7 +46,7 @@ process_execute (const char *file_name)
   sema_init(&sema_relation,0);
 
   /* get a page for passing argument. */
-  fn_copy = palloc_get_page (0);
+  fn_copy = frame_alloc (0);
   if (fn_copy == NULL)
     return TID_ERROR;
   fn_copy->parent = thread_current();
@@ -68,13 +69,13 @@ process_execute (const char *file_name)
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (fn_copy->fn, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy);
+    frame_free (fn_copy);
 
   sema_down(&sema_relation);
   if (fn_copy->load_success)
 	  return tid;
   else{
-	  palloc_free_page(fn_copy);
+	  frame_free(fn_copy);
 	  process_wait(tid);
 	  return -1;
   }
@@ -146,7 +147,7 @@ start_process (void *arg_)
 	  if_.esp =  (void*)main_arg - sizeof(return_addr);
 	  *((return_addr*)(if_.esp)) = 0x0;
   }
-  palloc_free_page(arg_);
+  frame_free(arg_);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -513,14 +514,14 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
       /* Get a page of memory. */
-      uint8_t *kpage = palloc_get_page (PAL_USER);
+      uint8_t *kpage = frame_alloc (PAL_USER);
       if (kpage == NULL)
         return false;
 
       /* Load this page. */
       if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
         {
-          palloc_free_page (kpage);
+          frame_free (kpage);
           return false;
         }
       memset (kpage + page_read_bytes, 0, page_zero_bytes);
@@ -528,7 +529,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       /* Add the page to the process's address space. */
       if (!install_page (upage, kpage, writable))
         {
-          palloc_free_page (kpage);
+          frame_free (kpage);
           return false;
         }
 
@@ -548,14 +549,14 @@ setup_stack (void **esp)
   uint8_t *kpage;
   bool success = false;
 
-  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  kpage = frame_alloc (PAL_USER | PAL_ZERO);
   if (kpage != NULL)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
         *esp = PHYS_BASE;
       else
-        palloc_free_page (kpage);
+        frame_free (kpage);
     }
   return success;
 }

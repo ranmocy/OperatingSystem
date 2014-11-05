@@ -5,7 +5,8 @@
  *
  * Version: 1.0.0
  *
- * Description: Frame table
+ * Description: Frame table is a linked list, ordered by latest usage time. Older first.
+ *
  *
  */
 
@@ -16,16 +17,15 @@
 #include "threads/palloc.h"
 #include "vm/page.h"
 
-/* Struct frame for physical memory */
 struct frame_entry
 {
     void *frame;
-    struct page_entry *page_entry;
+    // struct page_entry *page_entry;
     struct list_elem elem;
 };
 
 void  frame_init (void);
-void *frame_alloc (enum palloc_flags flags, struct page_entry *page_entry);
+void *frame_alloc (enum palloc_flags flags);
 void  frame_free (void *frame);
 
 #endif
