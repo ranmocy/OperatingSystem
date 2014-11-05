@@ -5,7 +5,7 @@
  *
  * Version: 1.0.0
  *
- * Description: Page table
+ * Description: Supplemental Page Table
  *
  */
 
@@ -14,23 +14,25 @@
 
 #include <hash.h>
 
-enum page_t {
+typedef struct hash sup_page_table_t;
+
+enum page_entry_type {
     SWAP,
     FILE,
     MMAP,
     ERROR
 };
 
-struct page_entry {
-    enum page_t type;
+typedef struct {
+    enum page_entry_type type;
     void *page;
     struct hash_elem elem;
-};
+} sup_page_entry_t;
 
-// void page_table_init (struct hash *page_table);
-// void page_table_destroy (struct hash *page_table);
+void page_table_init (sup_page_table_t *page_table);
+void page_table_destroy (sup_page_table_t *page_table);
 
-// void page_add (enum palloc_flags flags, struct page_entry *page_entry);
-// void page_free (void *page);
+void page_add (sup_page_table_t page_table, sup_page_entry_t *page_entry);
+void page_free (void *page);
 
 #endif
