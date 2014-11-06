@@ -145,9 +145,6 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
-#ifdef VM
-  page_table_init (&initial_thread->page_table);
-#endif
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -257,6 +254,9 @@ thread_create (const char *name, int priority,
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
   t->recent_cpu = thread_current()->recent_cpu;
+#ifdef VM
+  page_table_init (&t->page_table);
+#endif
 
   /* Stack frame for kernel_thread(). */
   kf = alloc_frame (t, sizeof *kf);
