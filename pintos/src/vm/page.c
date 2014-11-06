@@ -5,13 +5,17 @@
 #include "userprog/pagedir.h"
 #include "vm/frame.h"
 
-#define get_elem(SPE_T)                 (&((SPE_T)->elem))
-#define get_page_entry(ELEM_P)          hash_entry (ELEM_P, sup_page_entry_t, elem)
+#define get_elem(SPE_P)             (&((SPE_P)->elem))
+#define get_page_entry(ELEM_P)      hash_entry (ELEM_P, SP_entry_t, elem)
+
+#define table_find(SPT_P, SPE_P)    get_page_entry (hash_find (SPT_P, get_elem (SPE_P)))
+
 
 static unsigned
 page_hash_func (const struct hash_elem *elem, void *aux UNUSED)
 {
-    return hash_int ((int) get_page_entry(elem)->page);
+    void *p = get_page_entry(elem)->page;
+    return hash_bytes (&p, sizeof(p));
 }
 
 static bool
@@ -23,7 +27,7 @@ page_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux 
 static void
 page_destroy_func (struct hash_elem *elem, void *aux UNUSED)
 {
-    sup_page_entry_t *entry = get_page_entry(elem);
+    SP_entry_t *entry = get_page_entry(elem);
     if (entry->page != NULL) {
         struct thread *t = thread_current ();
         frame_free (pagedir_get_page (t->pagedir, entry->page));
@@ -31,6 +35,19 @@ page_destroy_func (struct hash_elem *elem, void *aux UNUSED)
     }
     free (entry);
 }
+
+void
+page_add (SP_table_t page_table, SP_entry_t *page_entry)
+{
+    // TODO
+}
+
+void
+page_free (void *page)
+{
+    // TODO
+}
+
 
 //
 //                            ,,        ,,    ,,
@@ -44,25 +61,34 @@ page_destroy_func (struct hash_elem *elem, void *aux UNUSED)
 //
 //
 void
-page_table_init (sup_page_table_t *page_table)
+page_table_init (SP_table_t *page_table)
 {
     hash_init (page_table, page_hash_func, page_less_func, NULL);
 }
 
 void
-page_table_destroy (sup_page_table_t *page_table)
+page_table_destroy (SP_table_t *page_table)
 {
     hash_destroy (page_table, page_destroy_func);
 }
 
-void
-page_add (sup_page_table_t page_table, sup_page_entry_t *page_entry)
+SP_entry_t *
+page_find (SP_table_t *page_table, SP_entry_t *e)
 {
-    // TODO
+    return table_find (page_table, e);
 }
 
-void
-page_free (void *page)
+SP_entry_t *
+page_find_by_addr (SP_table_t *page_table, void *page)
 {
+    SP_entry_t search_entry;
+    search_entry.page = page;
+    return page_find (page_table, &search_entry);
+}
+
+bool
+page_find_by_addr_and_load (SP_table_t *page_table, void *page)
+{
+    SP_entry_t *e = page_find_by_addr (page_table, page);
     // TODO
 }

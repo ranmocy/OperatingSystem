@@ -14,7 +14,7 @@
 
 #include <hash.h>
 
-typedef struct hash sup_page_table_t;
+typedef struct hash SP_table_t;
 
 enum page_entry_type {
     SWAP,
@@ -27,12 +27,13 @@ typedef struct {
     enum page_entry_type type;
     void *page;
     struct hash_elem elem;
-} sup_page_entry_t;
+} SP_entry_t;
 
-void page_table_init (sup_page_table_t *page_table);
-void page_table_destroy (sup_page_table_t *page_table);
+void page_table_init (SP_table_t *page_table);
+void page_table_destroy (SP_table_t *page_table);
 
-void page_add (sup_page_table_t page_table, sup_page_entry_t *page_entry);
-void page_free (void *page);
+SP_entry_t * page_find (SP_table_t *page_table, SP_entry_t *elem);
+SP_entry_t * page_find_by_addr (SP_table_t *page_table, void *page);
+bool page_find_by_addr_and_load (SP_table_t *page_table, void *page);
 
 #endif

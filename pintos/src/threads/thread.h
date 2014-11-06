@@ -130,7 +130,7 @@ struct thread
 #endif
 
 #ifdef VM
-    sup_page_table_t page_table;
+    SP_table_t page_table;
 #endif
 
     /* Owned by devices/timer.c. */
