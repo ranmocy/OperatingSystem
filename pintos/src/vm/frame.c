@@ -1,12 +1,12 @@
+#include "frame.h"
 #include <debug.h>
 #include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/synch.h"
-#include "vm/frame.h"
 
 #define FRAME_ENTRY_SIZE sizeof(struct frame_entry)
-
 #define TABLE_NAME frame_table
+
 #define get_elem(FE_P)                  (&((FE_P)->elem))
 #define get_frame_entry(ELEM_P)         list_entry ((ELEM_P), struct frame_entry, elem)
 
