@@ -42,7 +42,7 @@
 
 /*compare the two thread */
 bool thread_cmp_func(const struct list_elem *a,
-                   const struct list_elem *b, void *aux)
+                   const struct list_elem *b, void *aux UNUSED)
 {
     struct thread *sa, *sb;
 
@@ -391,7 +391,7 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 }
 
 bool cmp_sem_priority(const struct list_elem *a,
-                      const struct list_elem *b, void *aux)
+                      const struct list_elem *b, void *aux UNUSED)
 {
   struct semaphore_elem *sa = list_entry(a, struct semaphore_elem, elem);
   struct semaphore_elem *sb = list_entry(b, struct semaphore_elem, elem);

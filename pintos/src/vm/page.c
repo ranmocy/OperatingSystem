@@ -91,4 +91,5 @@ page_find_by_addr_and_load (SP_table_t *page_table, void *page)
 {
     SP_entry_t *e = page_find_by_addr (page_table, page);
     // TODO
+    return false;
 }

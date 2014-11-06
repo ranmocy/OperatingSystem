@@ -101,7 +101,7 @@ static bool thread_larger_func(const struct list_elem *a, const struct list_elem
 
 /*compare the two thread */
 bool thread_larger_func(const struct list_elem *a,
-                   const struct list_elem *b, void *aux)
+                   const struct list_elem *b, void *aux UNUSED)
 {
     struct thread *sa, *sb;
 
@@ -408,12 +408,13 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (cur != idle_thread)
-	  if (thread_mlfqs)
-		  list_push_back (ready_list + cur->priority - PRI_MIN, &cur->elem);
-	  else
-		list_insert_ordered (ready_list, &cur->elem,
-                     thread_larger_func, NULL);
+  if (cur != idle_thread) {
+    if (thread_mlfqs)
+      list_push_back (ready_list + cur->priority - PRI_MIN, &cur->elem);
+    else
+      list_insert_ordered (ready_list, &cur->elem,
+                           thread_larger_func, NULL);
+  }
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);

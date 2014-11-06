@@ -92,7 +92,7 @@ timer_elapsed (int64_t then)
 
 /* Compare should thread A wake up first */
 bool
-timer_compare (const struct list_elem* a, const struct list_elem* b, void* _){
+timer_compare (const struct list_elem* a, const struct list_elem* b, void* _ UNUSED){
     if (list_entry (a, struct thread, elem)->sleep_end_tick
         != list_entry (b, struct thread, elem)->sleep_end_tick)
     {
