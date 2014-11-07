@@ -2,8 +2,8 @@
 #include <debug.h>
 #include "threads/malloc.h"
 #include "threads/thread.h"
+#include "threads/vaddr.h"
 #include "userprog/pagedir.h"
-#include "vm/frame.h"
 
 #define get_elem(SPE_P)             (&((SPE_P)->elem))
 #define get_page_entry(ELEM_P)      hash_entry (ELEM_P, SP_entry_t, elem)
@@ -79,17 +79,17 @@ page_find (SP_table_t *page_table, SP_entry_t *e)
 }
 
 SP_entry_t *
-page_find_by_addr (SP_table_t *page_table, void *page)
+page_find_by_addr (SP_table_t *page_table, void *addr)
 {
     SP_entry_t search_entry;
-    search_entry.page = page;
+    search_entry.page = pg_round_down (addr);
     return page_find (page_table, &search_entry);
 }
 
 bool
-page_find_by_addr_and_load (SP_table_t *page_table, void *page)
+page_find_by_addr_and_load (SP_table_t *page_table, void *addr)
 {
-    SP_entry_t *e = page_find_by_addr (page_table, page);
+    SP_entry_t *e = page_find_by_addr (page_table, addr);
     // TODO
     return false;
 }

@@ -17,12 +17,20 @@
 #include "threads/palloc.h"
 #include "vm/page.h"
 
-struct frame_entry
-{
-    void *frame;
-    // struct page_entry *page_entry;
-    struct list_elem elem;
+enum frame_entry_type {
+    MEM,
+    SWAP,
+    FILE,
+    MMAP,
+    ERROR
 };
+
+typedef struct {
+    enum frame_entry_type type;
+    void *frame;
+    struct SP_entry_t *page_entry;
+    struct list_elem elem;
+} FRAME_entry_t;
 
 void  frame_init (void);
 void *frame_alloc (enum palloc_flags flags);

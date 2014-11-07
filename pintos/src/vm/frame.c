@@ -4,11 +4,11 @@
 #include "threads/palloc.h"
 #include "threads/synch.h"
 
-#define FRAME_ENTRY_SIZE sizeof(struct frame_entry)
+#define FRAME_ENTRY_SIZE sizeof(FRAME_entry_t)
 #define TABLE_NAME frame_table
 
 #define get_elem(FE_P)                  (&((FE_P)->elem))
-#define get_frame_entry(ELEM_P)         list_entry ((ELEM_P), struct frame_entry, elem)
+#define get_frame_entry(ELEM_P)         list_entry ((ELEM_P), FRAME_entry_t, elem)
 
 #define table_begin()                   get_frame_entry (list_begin (&TABLE_NAME))
 #define table_end()                     get_frame_entry (list_end (&TABLE_NAME))
@@ -32,15 +32,13 @@
 struct list TABLE_NAME;
 struct lock frame_table_lock;
 
-void  frame_add (void *frame);
-void *frame_evict (void);
-
 
 void
-frame_add (void *frame)
+frame_add (void *frame, enum frame_entry_type type)
 {
-    struct frame_entry *e = malloc (FRAME_ENTRY_SIZE);
+    FRAME_entry_t *e = malloc (FRAME_ENTRY_SIZE);
     e->frame = frame;
+    e->type = type;
 
     lock_table ();
     table_push_back (e);
@@ -80,14 +78,14 @@ frame_alloc (enum palloc_flags flags)
     if (!frame) {
         frame = frame_evict ();
     }
-    frame_add (frame);
+    frame_add (frame, MEM);
     return frame;
 }
 
 void
 frame_free (void *frame)
 {
-    struct frame_entry *e;
+    FRAME_entry_t *e;
     bool found = false;
 
     lock_table ();
