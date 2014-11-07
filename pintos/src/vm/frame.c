@@ -32,11 +32,8 @@
 struct list TABLE_NAME;
 struct lock frame_table_lock;
 
-void frame_add (void *frame, enum frame_entry_type type);
+void frame_add (void *frame);
 void * frame_evict (void);
-bool load_swap (FRAME_entry_t *frame);
-bool load_file (FRAME_entry_t *frame);
-bool load_mmap (FRAME_entry_t *frame);
 
 
 //
@@ -51,11 +48,10 @@ bool load_mmap (FRAME_entry_t *frame);
 //
 //
 void
-frame_add (void *frame, enum frame_entry_type type)
+frame_add (void *frame)
 {
     FRAME_entry_t *e = malloc (FRAME_ENTRY_SIZE);
     e->frame = frame;
-    e->type = type;
 
     lock_table ();
     table_push_back (e);
@@ -68,24 +64,6 @@ frame_evict (void)
 {
     // TODO: support swap
     PANIC ("No available SWAP to evict!");
-}
-
-bool
-load_swap (FRAME_entry_t *frame_entry)
-{
-    // TODO
-}
-
-bool
-load_file (FRAME_entry_t *frame_entry)
-{
-    // TODO
-}
-
-bool
-load_mmap (FRAME_entry_t *frame_entry)
-{
-    // TODO
 }
 
 
@@ -116,7 +94,7 @@ frame_alloc (enum palloc_flags flags)
     // evict should success or kernel panic
     ASSERT (frame != NULL);
 
-    frame_add (frame, ERROR); // FIXME
+    frame_add (frame);
     return frame;
 }
 
@@ -142,19 +120,4 @@ frame_free (void *frame)
     }
 
     palloc_free_page(frame);
-}
-
-bool
-frame_load (FRAME_entry_t *frame_entry)
-{
-    switch (frame_entry->type) {
-        case SWAP:
-            return load_swap (frame_entry);
-        case FILE:
-            return load_file (frame_entry);
-        case MMAP:
-            return load_mmap (frame_entry);
-        case ERROR:
-            PANIC ("Can't load a frame with type ERROR!");
-    }
 }

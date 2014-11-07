@@ -14,8 +14,13 @@
 static unsigned page_hash_func (const struct hash_elem *elem, void *aux UNUSED);
 static bool page_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux UNUSED);
 static void page_destroy_func (struct hash_elem *elem, void *aux UNUSED);
-void page_add (SP_table_t page_table, SP_entry_t *page_entry);
+
+void page_add (SP_table_t *page_table, SP_entry_t *page_entry);
 void page_free (void *page);
+
+bool load_swap (SP_entry_t *entry, void *page);
+bool load_file (SP_entry_t *entry, void *page);
+bool load_mmap (SP_entry_t *entry, void *page);
 
 
 //
@@ -55,7 +60,7 @@ page_destroy_func (struct hash_elem *elem, void *aux UNUSED)
 }
 
 void
-page_add (SP_table_t page_table, SP_entry_t *page_entry)
+page_add (SP_table_t *page_table, SP_entry_t *page_entry)
 {
     // TODO
 }
@@ -65,6 +70,29 @@ page_free (void *page)
 {
     // TODO
 }
+
+bool
+load_swap (SP_entry_t *entry, void *page)
+{
+    // TODO
+    return false;
+}
+
+bool
+load_file (SP_entry_t *entry, void *page)
+{
+    // TODO
+    return false;
+}
+
+bool
+load_mmap (SP_entry_t *entry, void *page)
+{
+    // TODO
+    return false;
+}
+
+
 
 
 //
@@ -118,17 +146,40 @@ page_find_by_addr (SP_table_t *page_table, void *addr)
     return page_find_by_page (page_table, pg_round_down (addr));
 }
 
+// load PAGE in PAGE_TABLE into memory, return if loaded success
+bool
+page_load (SP_entry_t *entry, void *page)
+{
+    switch (entry->type) {
+        case SWAP:
+            return load_swap (entry, page);
+        case FILE:
+            return load_file (entry, page);
+        case MMAP:
+            return load_mmap (entry, page);
+        case ERROR:
+            PANIC ("Can't load a frame with type ERROR!");
+    }
+}
+
+// return whether it is loaded
+bool
+is_loaded (SP_entry_t *entry)
+{
+    return entry->frame != NULL;
+}
+
 // find the page and load into memory
 bool
 page_find_and_load_page (SP_table_t *page_table, void *page)
 {
-    SP_entry_t *sp_entry = page_find_by_page (page_table, page);
-    if (sp_entry == NULL) {
+    SP_entry_t *entry = page_find_by_page (page_table, page);
+    if (entry == NULL) {
         return false;
     }
 
     // if found, load frame to memory
-    return frame_load (sp_entry->frame);
+    return page_load (entry, page);
 }
 
 // find the page at ADDR and load into memory

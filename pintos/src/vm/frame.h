@@ -13,21 +13,15 @@
 #ifndef VM_FRAME_H
 #define VM_FRAME_H
 
+// Since it's double-linked entry between frame and page,
+// pre-definition is required.
 typedef struct frame_entry FRAME_entry_t;
 
 #include <list.h>
 #include "threads/palloc.h"
 #include "vm/page.h"
 
-enum frame_entry_type {
-    SWAP,
-    FILE,
-    MMAP,
-    ERROR
-};
-
 struct frame_entry {
-    enum frame_entry_type type;
     void *frame;
     SP_entry_t *page_entry;
     struct list_elem elem;
@@ -36,7 +30,5 @@ struct frame_entry {
 void  frame_init (void);
 void *frame_alloc (enum palloc_flags flags);
 void  frame_free (void *frame);
-
-bool  frame_load (FRAME_entry_t *frame);
 
 #endif
