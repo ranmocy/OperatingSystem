@@ -1,4 +1,4 @@
-#include "frame.h"
+#include "vm/frame.h"
 #include <debug.h>
 #include "threads/malloc.h"
 #include "threads/palloc.h"
@@ -32,13 +32,24 @@
 struct list TABLE_NAME;
 struct lock frame_table_lock;
 
-// Private
 void frame_add (void *frame, enum frame_entry_type type);
 void * frame_evict (void);
 bool load_swap (FRAME_entry_t *frame);
 bool load_file (FRAME_entry_t *frame);
 bool load_mmap (FRAME_entry_t *frame);
 
+
+//
+//                           ,,
+//     `7MM"""Mq.            db                    mm
+//       MM   `MM.                                 MM
+//       MM   ,M9 `7Mb,od8 `7MM `7M'   `MF',6"Yb.mmMMmm .gP"Ya
+//       MMmmdM9    MM' "'   MM   VA   ,V 8)   MM  MM  ,M'   Yb
+//       MM         MM       MM    VA ,V   ,pm9MM  MM  8M""""""
+//       MM         MM       MM     VVV   8M   MM  MM  YM.    ,
+//     .JMML.     .JMML.   .JMML.    W    `Moo9^Yo.`Mbmo`Mbmmd'
+//
+//
 void
 frame_add (void *frame, enum frame_entry_type type)
 {
@@ -60,19 +71,19 @@ frame_evict (void)
 }
 
 bool
-load_swap (FRAME_entry_t *frame)
+load_swap (FRAME_entry_t *frame_entry)
 {
     // TODO
 }
 
 bool
-load_file (FRAME_entry_t *frame)
+load_file (FRAME_entry_t *frame_entry)
 {
     // TODO
 }
 
 bool
-load_mmap (FRAME_entry_t *frame)
+load_mmap (FRAME_entry_t *frame_entry)
 {
     // TODO
 }
@@ -134,15 +145,15 @@ frame_free (void *frame)
 }
 
 bool
-frame_load (FRAME_entry_t *frame)
+frame_load (FRAME_entry_t *frame_entry)
 {
-    switch (frame->type) {
+    switch (frame_entry->type) {
         case SWAP:
-            return load_swap (frame);
+            return load_swap (frame_entry);
         case FILE:
-            return load_file (frame);
+            return load_file (frame_entry);
         case MMAP:
-            return load_mmap (frame);
+            return load_mmap (frame_entry);
         case ERROR:
             PANIC ("Can't load a frame with type ERROR!");
     }

@@ -27,6 +27,10 @@ struct SP_entry {
 void page_table_init (SP_table_t *page_table);
 void page_table_destroy (SP_table_t *page_table);
 
+SP_entry_t * page_find (SP_table_t *page_table, SP_entry_t *entry);
+SP_entry_t * page_find_by_page (SP_table_t *page_table, void *page);
+SP_entry_t * page_find_by_addr (SP_table_t *page_table, void *addr);
+
 bool page_find_and_load_page (SP_table_t *page_table, void *page);
 bool page_find_and_load_addr (SP_table_t *page_table, void *addr);
 
