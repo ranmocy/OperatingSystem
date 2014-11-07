@@ -12,22 +12,22 @@
 #ifndef VM_PAGE_H
 #define VM_PAGE_H
 
+typedef struct hash SP_table_t;
+typedef struct SP_entry SP_entry_t;
+
 #include <hash.h>
 #include "vm/frame.h"
 
-typedef struct hash SP_table_t;
-
-typedef struct {
+struct SP_entry {
     void *page;
-    struct FRAME_entry_t *frame;
+    FRAME_entry_t *frame;
     struct hash_elem elem;
-} SP_entry_t;
+};
 
 void page_table_init (SP_table_t *page_table);
 void page_table_destroy (SP_table_t *page_table);
 
-SP_entry_t * page_find (SP_table_t *page_table, SP_entry_t *elem);
-SP_entry_t * page_find_by_addr (SP_table_t *page_table, void *addr);
-bool page_find_by_addr_and_load (SP_table_t *page_table, void *addr);
+bool page_find_and_load_page (SP_table_t *page_table, void *page);
+bool page_find_and_load_addr (SP_table_t *page_table, void *addr);
 
 #endif
