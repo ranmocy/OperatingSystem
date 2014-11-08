@@ -30,7 +30,7 @@ enum SP_entry_type {
 struct SP_entry {
     enum SP_entry_type type;
     void *page;
-    FRAME_entry_t *frame;
+    FRAME_entry_t *frame_entry;
     struct hash_elem elem;
 };
 
@@ -41,8 +41,8 @@ SP_entry_t * page_find (SP_table_t *page_table, SP_entry_t *entry);
 SP_entry_t * page_find_by_page (SP_table_t *page_table, void *page);
 SP_entry_t * page_find_by_addr (SP_table_t *page_table, void *addr);
 
-bool page_load (SP_entry_t *entry, void *page);
-bool is_loaded (SP_entry_t *entry);
+bool page_load (SP_entry_t *entry);
+bool page_is_loaded (SP_entry_t *entry);
 
 bool page_find_and_load_page (SP_table_t *page_table, void *page);
 bool page_find_and_load_addr (SP_table_t *page_table, void *addr);

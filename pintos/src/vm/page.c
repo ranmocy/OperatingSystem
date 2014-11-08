@@ -18,9 +18,9 @@ static void page_destroy_func (struct hash_elem *elem, void *aux UNUSED);
 void page_add (SP_table_t *page_table, SP_entry_t *page_entry);
 void page_free (void *page);
 
-bool load_swap (SP_entry_t *entry, void *page);
-bool load_file (SP_entry_t *entry, void *page);
-bool load_mmap (SP_entry_t *entry, void *page);
+bool load_swap (SP_entry_t *entry);
+bool load_file (SP_entry_t *entry);
+bool load_mmap (SP_entry_t *entry);
 
 
 //
@@ -51,11 +51,12 @@ static void
 page_destroy_func (struct hash_elem *elem, void *aux UNUSED)
 {
     SP_entry_t *entry = get_page_entry(elem);
-    if (entry->page != NULL) {
-        struct thread *t = thread_current ();
-        frame_free (pagedir_get_page (t->pagedir, entry->page));
-        pagedir_clear_page (t->pagedir, entry->page);
-    }
+    // if (entry->page != NULL) {
+        // struct thread *t = thread_current ();
+        // frame_destroy (pagedir_get_page (t->pagedir, entry->page));
+        // pagedir_clear_page (t->pagedir, entry->page);
+    // }
+    frame_destroy (entry->frame_entry);
     free (entry);
 }
 
@@ -72,21 +73,21 @@ page_free (void *page)
 }
 
 bool
-load_swap (SP_entry_t *entry, void *page)
+load_swap (SP_entry_t *entry)
 {
     // TODO
     return false;
 }
 
 bool
-load_file (SP_entry_t *entry, void *page)
+load_file (SP_entry_t *entry)
 {
     // TODO
     return false;
 }
 
 bool
-load_mmap (SP_entry_t *entry, void *page)
+load_mmap (SP_entry_t *entry)
 {
     // TODO
     return false;
@@ -148,25 +149,37 @@ page_find_by_addr (SP_table_t *page_table, void *addr)
 
 // load PAGE in PAGE_TABLE into memory, return if loaded success
 bool
-page_load (SP_entry_t *entry, void *page)
+page_load (SP_entry_t *SP_entry)
 {
-    switch (entry->type) {
+    FRAME_entry_t *frame_entry = frame_create (PAL_USER, SP_entry);
+    if (frame_entry == NULL) {
+        return false;
+    }
+
+    bool loaded = false;
+    switch (SP_entry->type) {
         case SWAP:
-            return load_swap (entry, page);
+            loaded = load_swap (SP_entry);
         case FILE:
-            return load_file (entry, page);
+            loaded = load_file (SP_entry);
         case MMAP:
-            return load_mmap (entry, page);
+            loaded = load_mmap (SP_entry);
         case ERROR:
             PANIC ("Can't load a frame with type ERROR!");
     }
+
+    if (!loaded) {
+        frame_destroy (frame_entry);
+    }
+
+    return loaded;
 }
 
 // return whether it is loaded
 bool
-is_loaded (SP_entry_t *entry)
+page_is_loaded (SP_entry_t *entry)
 {
-    return entry->frame != NULL;
+    return entry->frame_entry != NULL;
 }
 
 // find the page and load into memory
@@ -179,7 +192,7 @@ page_find_and_load_page (SP_table_t *page_table, void *page)
     }
 
     // if found, load frame to memory
-    return page_load (entry, page);
+    return page_load (entry);
 }
 
 // find the page at ADDR and load into memory

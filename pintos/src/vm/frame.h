@@ -27,8 +27,9 @@ struct frame_entry {
     struct list_elem elem;
 };
 
-void  frame_init (void);
-void *frame_alloc (enum palloc_flags flags);
-void  frame_free (void *frame);
+void frame_init (void);
+
+FRAME_entry_t *frame_create (enum palloc_flags flags, SP_entry_t *page_entry);
+void frame_destroy (FRAME_entry_t *frame_entry);
 
 #endif

@@ -32,9 +32,8 @@
 struct list TABLE_NAME;
 struct lock frame_table_lock;
 
-void frame_add (void *frame);
 void * frame_evict (void);
-
+bool frame_found (FRAME_entry_t *entry);
 
 //
 //                           ,,
@@ -47,16 +46,6 @@ void * frame_evict (void);
 //     .JMML.     .JMML.   .JMML.    W    `Moo9^Yo.`Mbmo`Mbmmd'
 //
 //
-void
-frame_add (void *frame)
-{
-    FRAME_entry_t *e = malloc (FRAME_ENTRY_SIZE);
-    e->frame = frame;
-
-    lock_table ();
-    table_push_back (e);
-    unlock_table ();
-}
 
 // evict oldest(first) element, and return the frame pointer
 void *
@@ -66,6 +55,24 @@ frame_evict (void)
     PANIC ("No available SWAP to evict!");
 }
 
+// return if the entry in the table
+bool
+frame_found (FRAME_entry_t *entry)
+{
+    bool found = false;
+    FRAME_entry_t *e;
+
+    lock_table ();
+    for (e = table_begin (); e != table_end (); e = table_next (e)) {
+        if (e == entry) {
+            found = true;
+            break;
+        }
+    }
+    unlock_table ();
+
+    return found;
+}
 
 //
 //                            ,,        ,,    ,,
@@ -78,14 +85,16 @@ frame_evict (void)
 //     .JMML.       `Mbod"YML.P^YbmdP'.JMML..JMML.YMbmd'
 //
 //
+
 void frame_init (void)
 {
     list_init (&frame_table);
     lock_init (&frame_table_lock);
 }
 
-void *
-frame_alloc (enum palloc_flags flags)
+// alloc new frame, return NULL if failed
+FRAME_entry_t *
+frame_create (enum palloc_flags flags, SP_entry_t *page_entry)
 {
     void *frame = palloc_get_page (flags);
     if (!frame) {
@@ -94,22 +103,30 @@ frame_alloc (enum palloc_flags flags)
     // evict should success or kernel panic
     ASSERT (frame != NULL);
 
-    frame_add (frame);
-    return frame;
+    // create new entry
+    FRAME_entry_t *frame_entry = malloc (FRAME_ENTRY_SIZE);
+    frame_entry->frame = frame;
+    frame_entry->page_entry = page_entry;
+    page_entry->frame_entry = frame_entry;
+
+    // add to table
+    lock_table ();
+    table_push_back (frame_entry);
+    unlock_table ();
+
+    return frame_entry;
 }
 
-void
-frame_free (void *frame)
+void frame_destroy (FRAME_entry_t *frame_entry)
 {
-    FRAME_entry_t *e;
     bool found = false;
+    FRAME_entry_t *e;
 
     lock_table ();
     for (e = table_begin (); e != table_end (); e = table_next (e)) {
-        if (e->frame == frame) {
-            table_remove (e);
-            free (e);
+        if (e == frame_entry) {
             found = true;
+            table_remove (e);
             break;
         }
     }
@@ -119,5 +136,6 @@ frame_free (void *frame)
         PANIC ("Can't find the frame to free!");
     }
 
-    palloc_free_page(frame);
+    palloc_free_page(frame_entry->frame);
+    free (frame_entry);
 }
