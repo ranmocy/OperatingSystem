@@ -60,7 +60,7 @@ get_page_entry (void *page)
     struct SP_entry page_entry;
     page_entry.page = pg_round_down(page);
 
-    struct hash_elem *e = hash_find (&thread_current()->spt, &page_entry.elem);
+    struct hash_elem *e = hash_find (&thread_current()->page_table, &page_entry.elem);
     if (!e) {
         return NULL;
     }
@@ -128,15 +128,15 @@ load_file (struct SP_entry *page_entry)
 //
 
 void
-page_table_init (struct hash *spt)
+page_table_init (struct hash *page_table)
 {
-    hash_init (spt, page_hash_func, page_less_func, NULL);
+    hash_init (page_table, page_hash_func, page_less_func, NULL);
 }
 
 void
-page_table_destroy (struct hash *spt)
+page_table_destroy (struct hash *page_table)
 {
-    hash_destroy (spt, page_action_func);
+    hash_destroy (page_table, page_action_func);
 }
 
 bool
@@ -190,7 +190,7 @@ page_add_file (struct file *file, int32_t ofs, uint8_t *upage,
     page_entry->type = SP_FILE;
     page_entry->pinned = false;
 
-    return (hash_insert (&thread_current()->spt, &page_entry->elem) == NULL);
+    return (hash_insert (&thread_current()->page_table, &page_entry->elem) == NULL);
 }
 
 bool
@@ -216,7 +216,7 @@ page_add_mmap(struct file *file, int32_t ofs, uint8_t *upage,
         return false;
     }
 
-    if (hash_insert (&thread_current()->spt, &page_entry->elem)) {
+    if (hash_insert (&thread_current()->page_table, &page_entry->elem)) {
         page_entry->type = SP_ERROR;
         return false;
     }
@@ -256,5 +256,5 @@ grow_stack (void *page)
         page_entry->pinned = false;
     }
 
-    return (hash_insert (&thread_current()->spt, &page_entry->elem) == NULL);
+    return (hash_insert (&thread_current()->page_table, &page_entry->elem) == NULL);
 }

@@ -34,8 +34,8 @@ struct SP_entry {
   struct hash_elem elem;
 };
 
-void page_table_init (struct hash *spt);
-void page_table_destroy (struct hash *spt);
+void page_table_init (struct hash *page_table);
+void page_table_destroy (struct hash *page_table);
 
 bool page_load (struct SP_entry *page_entry);
 bool page_find_and_load (void * vaddr);

@@ -353,7 +353,7 @@ void process_remove_mmap (int mapping)
             }
           if (mm->page_entry->type != SP_ERROR)
             {
-              hash_delete(&t->spt, &mm->page_entry->elem);
+              hash_delete(&t->page_table, &mm->page_entry->elem);
             }
           list_remove(&mm->elem);
           if (mm->mapid != close)

@@ -258,7 +258,7 @@ thread_create (const char *name, int priority,
   tid = t->tid = allocate_tid ();
   t->recent_cpu = thread_current()->recent_cpu;
 #ifdef VM
-  page_table_init (&t->spt);
+  page_table_init (&t->page_table);
 #endif
 
   /* Stack frame for kernel_thread(). */
@@ -383,7 +383,7 @@ thread_exit (void)
 
 #ifdef VM
   process_remove_mmap (CLOSE_ALL);
-  page_table_destroy (&thread_current()->spt);
+  page_table_destroy (&thread_current()->page_table);
 #endif
 
 #ifdef USERPROG

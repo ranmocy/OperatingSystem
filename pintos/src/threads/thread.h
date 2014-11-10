@@ -130,7 +130,7 @@ struct thread
 #endif
 
 #ifdef VM
-    struct hash spt;
+    struct hash page_table;
     struct list mmap_list;
     int mapid;
 #endif
