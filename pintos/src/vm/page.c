@@ -1,203 +1,260 @@
-#include "vm/page.h"
-#include <debug.h>
+#include <string.h>
+#include <stdbool.h>
+#include "filesys/file.h"
+#include "threads/interrupt.h"
 #include "threads/malloc.h"
+#include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "userprog/pagedir.h"
+#include "userprog/process.h"
+#include "userprog/syscall.h"
 #include "vm/frame.h"
-
-#define get_elem(SPE_P)             (&((SPE_P)->elem))
-#define get_page_entry(ELEM_P)      hash_entry (ELEM_P, SP_entry_t, elem)
-
-#define table_find(SPT_P, SPE_P)    get_page_entry (hash_find (SPT_P, get_elem (SPE_P)))
-
-static unsigned page_hash_func (const struct hash_elem *elem, void *aux UNUSED);
-static bool page_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux UNUSED);
-static void page_destroy_func (struct hash_elem *elem, void *aux UNUSED);
-
-void page_add (SP_table_t *page_table, SP_entry_t *page_entry);
-void page_free (void *page);
-
-bool load_swap (SP_entry_t *entry);
-bool load_file (SP_entry_t *entry);
-bool load_mmap (SP_entry_t *entry);
-
+#include "vm/page.h"
+#include "vm/swap.h"
 
 //
-//                           ,,
-//     `7MM"""Mq.            db                    mm
-//       MM   `MM.                                 MM
-//       MM   ,M9 `7Mb,od8 `7MM `7M'   `MF',6"Yb.mmMMmm .gP"Ya
-//       MMmmdM9    MM' "'   MM   VA   ,V 8)   MM  MM  ,M'   Yb
-//       MM         MM       MM    VA ,V   ,pm9MM  MM  8M""""""
-//       MM         MM       MM     VVV   8M   MM  MM  YM.    ,
-//     .JMML.     .JMML.   .JMML.    W    `Moo9^Yo.`Mbmo`Mbmmd'
+//                         ,,
+//   `7MM"""Mq.            db                    mm
+//     MM   `MM.                                 MM
+//     MM   ,M9 `7Mb,od8 `7MM `7M'   `MF',6"Yb.mmMMmm .gP"Ya
+//     MMmmdM9    MM' "'   MM   VA   ,V 8)   MM  MM  ,M'   Yb
+//     MM         MM       MM    VA ,V   ,pm9MM  MM  8M""""""
+//     MM         MM       MM     VVV   8M   MM  MM  YM.    ,
+//   .JMML.     .JMML.   .JMML.    W    `Moo9^Yo.`Mbmo`Mbmmd'
 //
 //
+
 static unsigned
-page_hash_func (const struct hash_elem *elem, void *aux UNUSED)
+page_hash_func (const struct hash_elem *e, void *aux UNUSED)
 {
-    void *p = get_page_entry(elem)->page;
-    return hash_bytes (&p, sizeof(p));
+    struct SP_entry *page_entry = hash_entry(e, struct SP_entry, elem);
+    return hash_int((int) page_entry->page);
 }
 
 static bool
 page_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux UNUSED)
 {
-    return get_page_entry(a)->page < get_page_entry(b)->page;
+    struct SP_entry *sa = hash_entry(a, struct SP_entry, elem);
+    struct SP_entry *sb = hash_entry(b, struct SP_entry, elem);
+    if (sa->page < sb->page) {
+        return true;
+    }
+    return false;
 }
 
 static void
-page_destroy_func (struct hash_elem *elem, void *aux UNUSED)
+page_action_func (struct hash_elem *e, void *aux UNUSED)
 {
-    SP_entry_t *entry = get_page_entry(elem);
-    // if (entry->page != NULL) {
-        // struct thread *t = thread_current ();
-        // frame_destroy (pagedir_get_page (t->pagedir, entry->page));
-        // pagedir_clear_page (t->pagedir, entry->page);
-    // }
-    frame_destroy (entry->frame_entry);
-    free (entry);
+    struct SP_entry *page_entry = hash_entry(e, struct SP_entry, elem);
+    if (page_entry->is_loaded) {
+        frame_free (pagedir_get_page (thread_current()->pagedir, page_entry->page));
+        pagedir_clear_page (thread_current()->pagedir, page_entry->page);
+    }
+    free(page_entry);
 }
 
-void
-page_add (SP_table_t *page_table, SP_entry_t *page_entry)
+static struct SP_entry*
+get_page_entry (void *page)
 {
-    // TODO
-}
+    struct SP_entry page_entry;
+    page_entry.page = pg_round_down(page);
 
-void
-page_free (void *page)
-{
-    // TODO
-}
-
-bool
-load_swap (SP_entry_t *entry)
-{
-    // TODO
-    return false;
-}
-
-bool
-load_file (SP_entry_t *entry)
-{
-    // TODO
-    return false;
-}
-
-bool
-load_mmap (SP_entry_t *entry)
-{
-    // TODO
-    return false;
-}
-
-
-
-
-//
-//                            ,,        ,,    ,,
-//     `7MM"""Mq.            *MM      `7MM    db
-//       MM   `MM.            MM        MM
-//       MM   ,M9 `7MM  `7MM  MM,dMMb.  MM  `7MM  ,p6"bo
-//       MMmmdM9    MM    MM  MM    `Mb MM    MM 6M'  OO
-//       MM         MM    MM  MM     M8 MM    MM 8M
-//       MM         MM    MM  MM.   ,M9 MM    MM YM.    ,
-//     .JMML.       `Mbod"YML.P^YbmdP'.JMML..JMML.YMbmd'
-//
-//
-void
-page_table_init (SP_table_t *page_table)
-{
-    hash_init (page_table, page_hash_func, page_less_func, NULL);
-}
-
-void
-page_table_destroy (SP_table_t *page_table)
-{
-    hash_destroy (page_table, page_destroy_func);
-}
-
-// find page entry ENTRY in PAGE_TABLE, return NULL if not found
-SP_entry_t *
-page_find (SP_table_t *page_table, SP_entry_t *entry)
-{
-    struct hash_elem *elem = hash_find (page_table, get_elem (entry));
-    if (elem != NULL) {
-        return get_page_entry (elem);
-    } else {
+    struct hash_elem *e = hash_find (&thread_current()->spt, &page_entry.elem);
+    if (!e) {
         return NULL;
     }
+    return hash_entry (e, struct SP_entry, elem);
 }
 
-// find page entry contains PAGE in PAGE_TABLE, return NULL if not found
-SP_entry_t *
-page_find_by_page (SP_table_t *page_table, void *page)
+
+static bool
+load_swap (struct SP_entry *page_entry)
 {
-    SP_entry_t search_entry;
-    search_entry.page = page;
-    return page_find (page_table, &search_entry);
+    uint8_t *frame = frame_alloc (PAL_USER, page_entry);
+    if (!frame) {
+        return false;
+    }
+    if (!install_page (page_entry->page, frame, page_entry->writable)) {
+        frame_free (frame);
+        return false;
+    }
+    swap_in (page_entry->swap_index, page_entry->page);
+    page_entry->is_loaded = true;
+    return true;
 }
 
-// find page entry contains ADDR in PAGE_TABLE return NULL if not found
-SP_entry_t *
-page_find_by_addr (SP_table_t *page_table, void *addr)
+static bool
+load_file (struct SP_entry *page_entry)
 {
-    return page_find_by_page (page_table, pg_round_down (addr));
-}
+    enum palloc_flags flags = PAL_USER;
+    if (page_entry->read_bytes == 0) {
+        flags |= PAL_ZERO;
+    }
+    void *frame = frame_alloc (flags, page_entry);
+    if (!frame) {
+        return false;
+    }
+    if (page_entry->read_bytes > 0) {
+        lock_acquire (&filesys_lock);
+        if ((int) page_entry->read_bytes != file_read_at (page_entry->file, frame, page_entry->read_bytes, page_entry->offset)) {
+            lock_release (&filesys_lock);
+            frame_free (frame);
+            return false;
+        }
+        lock_release (&filesys_lock);
+        memset (frame + page_entry->read_bytes, 0, page_entry->zero_bytes);
+    }
 
-// load PAGE in PAGE_TABLE into memory, return if loaded success
-bool
-page_load (SP_entry_t *SP_entry)
-{
-    FRAME_entry_t *frame_entry = frame_create (PAL_USER, SP_entry);
-    if (frame_entry == NULL) {
+    if (!install_page (page_entry->page, frame, page_entry->writable)) {
+        frame_free (frame);
         return false;
     }
 
-    bool loaded = false;
-    switch (SP_entry->type) {
-        case SWAP:
-            loaded = load_swap (SP_entry);
-        case FILE:
-            loaded = load_file (SP_entry);
-        case MMAP:
-            loaded = load_mmap (SP_entry);
-        case ERROR:
-            PANIC ("Can't load a frame with type ERROR!");
-    }
-
-    if (!loaded) {
-        frame_destroy (frame_entry);
-    }
-
-    return loaded;
+    page_entry->is_loaded = true;
+    return true;
 }
 
-// return whether it is loaded
-bool
-page_is_loaded (SP_entry_t *entry)
+//
+//                          ,,        ,,    ,,
+//   `7MM"""Mq.            *MM      `7MM    db
+//     MM   `MM.            MM        MM
+//     MM   ,M9 `7MM  `7MM  MM,dMMb.  MM  `7MM  ,p6"bo
+//     MMmmdM9    MM    MM  MM    `Mb MM    MM 6M'  OO
+//     MM         MM    MM  MM     M8 MM    MM 8M
+//     MM         MM    MM  MM.   ,M9 MM    MM YM.    ,
+//   .JMML.       `Mbod"YML.P^YbmdP'.JMML..JMML.YMbmd'
+//
+//
+
+void
+page_table_init (struct hash *spt)
 {
-    return entry->frame_entry != NULL;
+    hash_init (spt, page_hash_func, page_less_func, NULL);
 }
 
-// find the page and load into memory
-bool
-page_find_and_load_page (SP_table_t *page_table, void *page)
+void
+page_table_destroy (struct hash *spt)
 {
-    SP_entry_t *entry = page_find_by_page (page_table, page);
-    if (entry == NULL) {
+    hash_destroy (spt, page_action_func);
+}
+
+bool
+page_load (struct SP_entry *page_entry)
+{
+    bool success = false;
+    page_entry->pinned = true;
+    if (page_entry->is_loaded) {
+        return success;
+    }
+    switch (page_entry->type) {
+        case SP_FILE:
+            success = load_file (page_entry);
+            break;
+        case SP_SWAP:
+            success = load_swap (page_entry);
+            break;
+        case SP_MMAP:
+            success = load_file (page_entry);
+            break;
+        case SP_ERROR:
+            PANIC ("SP type should not be ERROR");
+    }
+    return success;
+}
+
+bool
+page_find_and_load (void * vaddr)
+{
+    struct SP_entry *page_entry = get_page_entry (vaddr);
+    page_entry->pinned = false;
+    return page_load (page_entry);
+}
+
+bool
+page_add_file (struct file *file, int32_t ofs, uint8_t *upage,
+               uint32_t read_bytes, uint32_t zero_bytes,
+               bool writable)
+{
+    struct SP_entry *page_entry = malloc (sizeof (struct SP_entry));
+    if (!page_entry) {
+        return false;
+    }
+    page_entry->file = file;
+    page_entry->offset = ofs;
+    page_entry->page = upage;
+    page_entry->read_bytes = read_bytes;
+    page_entry->zero_bytes = zero_bytes;
+    page_entry->writable = writable;
+    page_entry->is_loaded = false;
+    page_entry->type = SP_FILE;
+    page_entry->pinned = false;
+
+    return (hash_insert (&thread_current()->spt, &page_entry->elem) == NULL);
+}
+
+bool
+page_add_mmap(struct file *file, int32_t ofs, uint8_t *upage,
+              uint32_t read_bytes, uint32_t zero_bytes)
+{
+    struct SP_entry *page_entry = malloc (sizeof (struct SP_entry));
+    if (!page_entry) {
+        return false;
+    }
+    page_entry->file = file;
+    page_entry->offset = ofs;
+    page_entry->page = upage;
+    page_entry->read_bytes = read_bytes;
+    page_entry->zero_bytes = zero_bytes;
+    page_entry->is_loaded = false;
+    page_entry->type = SP_MMAP;
+    page_entry->writable = true;
+    page_entry->pinned = false;
+
+    if (!process_add_mmap (page_entry)) {
+        free (page_entry);
         return false;
     }
 
-    // if found, load frame to memory
-    return page_load (entry);
+    if (hash_insert (&thread_current()->spt, &page_entry->elem)) {
+        page_entry->type = SP_ERROR;
+        return false;
+    }
+
+    return true;
 }
 
-// find the page at ADDR and load into memory
 bool
-page_find_and_load_addr (SP_table_t *page_table, void *addr)
+grow_stack (void *page)
 {
-    return page_find_and_load_page (page_table, pg_round_down (addr));
+    if ((size_t) (PHYS_BASE - pg_round_down (page)) > MAX_STACK_SIZE) {
+        return false;
+    }
+    struct SP_entry *page_entry = malloc (sizeof (struct SP_entry));
+    if (!page_entry) {
+        return false;
+    }
+    page_entry->page = pg_round_down (page);
+    page_entry->is_loaded = true;
+    page_entry->writable = true;
+    page_entry->type = SP_SWAP;
+    page_entry->pinned = true;
+
+    uint8_t *frame = frame_alloc (PAL_USER, page_entry);
+    if (!frame) {
+        free(page_entry);
+        return false;
+    }
+
+    if (!install_page (page_entry->page, frame, page_entry->writable)) {
+        free (page_entry);
+        frame_free (frame);
+        return false;
+    }
+
+    if (intr_context ()) {
+        page_entry->pinned = false;
+    }
+
+    return (hash_insert (&thread_current()->spt, &page_entry->elem) == NULL);
 }

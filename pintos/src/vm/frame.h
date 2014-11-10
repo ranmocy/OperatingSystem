@@ -1,21 +1,5 @@
-/*
- * Authors: Wanshang Sheng(ranmocy@gmail.com),
- *          Kaiming yang(yaxum62@gmail.com),
- *          Hao Chen(chenh1987@gmail.com)
- *
- * Version: 1.0.0
- *
- * Description: Frame table is a linked list, ordered by latest usage time. Older first.
- *
- *
- */
-
 #ifndef VM_FRAME_H
 #define VM_FRAME_H
-
-// Since it's double-linked entry between frame and page,
-// pre-definition is required.
-typedef struct frame_entry FRAME_entry_t;
 
 #include <list.h>
 #include "threads/palloc.h"
@@ -23,13 +7,17 @@ typedef struct frame_entry FRAME_entry_t;
 
 struct frame_entry {
     void *frame;
-    SP_entry_t *page_entry;
+    struct SP_entry *page_entry;
+    struct thread *thread;
     struct list_elem elem;
 };
 
-void frame_init (void);
+void frame_table_init (void);
 
-FRAME_entry_t *frame_create (enum palloc_flags flags, SP_entry_t *page_entry);
-void frame_destroy (FRAME_entry_t *frame_entry);
+void* frame_alloc (enum palloc_flags flags, struct SP_entry *page_entry);
+void frame_free (void *frame);
 
-#endif
+void frame_add (void *frame, struct SP_entry *page_entry);
+void* frame_evict (enum palloc_flags flags);
+
+#endif /* vm/frame.h */

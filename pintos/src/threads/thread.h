@@ -18,7 +18,7 @@
 #include "synch.h"
 #include "filesys/file.h"
 #ifdef VM
-#include "vm/page.h"
+#include "vm/vm.h"
 #endif
 
 /* States in a thread's life cycle. */
@@ -130,7 +130,9 @@ struct thread
 #endif
 
 #ifdef VM
-    SP_table_t page_table;
+    struct hash spt;
+    struct list mmap_list;
+    int mapid;
 #endif
 
     /* Owned by devices/timer.c. */

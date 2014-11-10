@@ -32,7 +32,7 @@
 #include "tests/threads/tests.h"
 #endif
 #ifdef VM
-#include "vm/frame.h"
+#include "vm/vm.h"
 #endif
 #ifdef FILESYS
 #include "devices/block.h"
@@ -102,7 +102,7 @@ main (void)
   malloc_init ();
   paging_init ();
 #ifdef VM
-  frame_init ();
+  frame_table_init ();
 #endif
 
   /* Segmentation. */

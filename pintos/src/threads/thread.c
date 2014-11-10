@@ -26,6 +26,9 @@
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
+#ifdef VM
+#include "userprog/syscall.h"
+#endif
 
 /* Indicate the point location of the fixed-point number. */
 #define FP_LOC 16	// amplify the number by 2**14 = 16384 times.
@@ -255,7 +258,7 @@ thread_create (const char *name, int priority,
   tid = t->tid = allocate_tid ();
   t->recent_cpu = thread_current()->recent_cpu;
 #ifdef VM
-  page_table_init (&t->page_table);
+  page_table_init (&t->spt);
 #endif
 
   /* Stack frame for kernel_thread(). */
@@ -379,7 +382,8 @@ thread_exit (void)
   ASSERT (!intr_context ());
 
 #ifdef VM
-  page_table_destroy (&thread_current()->page_table);
+  process_remove_mmap (CLOSE_ALL);
+  page_table_destroy (&thread_current()->spt);
 #endif
 
 #ifdef USERPROG
@@ -677,6 +681,10 @@ init_thread (struct thread *t, const char *name, int priority)
   sema_init(&t->sema_exit_ack, 0);
   list_init(&t->file_list);
   t->fd = 2;
+#endif
+#ifdef VM
+  list_init(&t->mmap_list);
+  t->mapid = 0;
 #endif
   t->magic = THREAD_MAGIC;
 

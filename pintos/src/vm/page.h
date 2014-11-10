@@ -1,50 +1,49 @@
-/*
- * Authors: Wanshang Sheng(ranmocy@gmail.com),
- *          Kaiming yang(yaxum62@gmail.com),
- *          Hao Chen(chenh1987@gmail.com)
- *
- * Version: 1.0.0
- *
- * Description: Supplemental Page Table
- *
- */
-
 #ifndef VM_PAGE_H
 #define VM_PAGE_H
-
-// Since it's double-linked entry between frame and page,
-// pre-definition is required.
-typedef struct hash SP_table_t;
-typedef struct SP_entry SP_entry_t;
 
 #include <hash.h>
 #include "vm/frame.h"
 
+#define MAX_STACK_SIZE (1 << 23) // 256 KB
+
 enum SP_entry_type {
-    ERROR, // type is required, so the default value is ERROR
-    SWAP,
-    FILE,
-    MMAP
+  SP_ERROR,
+  SP_FILE,
+  SP_SWAP,
+  SP_MMAP
 };
 
 struct SP_entry {
-    enum SP_entry_type type;
-    void *page;
-    FRAME_entry_t *frame_entry;
-    struct hash_elem elem;
+  enum SP_entry_type type;
+  void *page;
+
+  // Flags
+  bool is_loaded;
+  bool writable;
+  bool pinned;
+
+  // File
+  struct file *file;
+  size_t offset;
+  size_t read_bytes;
+  size_t zero_bytes;
+
+  // Swap
+  size_t swap_index;
+
+  struct hash_elem elem;
 };
 
-void page_table_init (SP_table_t *page_table);
-void page_table_destroy (SP_table_t *page_table);
+void page_table_init (struct hash *spt);
+void page_table_destroy (struct hash *spt);
 
-SP_entry_t * page_find (SP_table_t *page_table, SP_entry_t *entry);
-SP_entry_t * page_find_by_page (SP_table_t *page_table, void *page);
-SP_entry_t * page_find_by_addr (SP_table_t *page_table, void *addr);
+bool page_load (struct SP_entry *page_entry);
+bool page_find_and_load (void * vaddr);
+bool page_add_file (struct file *file, int32_t ofs, uint8_t *upage,
+                    uint32_t read_bytes, uint32_t zero_bytes,
+                    bool writable);
+bool page_add_mmap (struct file *file, int32_t ofs, uint8_t *upage,
+                    uint32_t read_bytes, uint32_t zero_bytes);
+bool grow_stack (void *page);
 
-bool page_load (SP_entry_t *entry);
-bool page_is_loaded (SP_entry_t *entry);
-
-bool page_find_and_load_page (SP_table_t *page_table, void *page);
-bool page_find_and_load_addr (SP_table_t *page_table, void *addr);
-
-#endif
+#endif /* vm/page.h */

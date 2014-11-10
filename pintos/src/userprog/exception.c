@@ -5,6 +5,7 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "userprog/syscall.h"
 #include "vm/page.h"
 
 /* Number of page faults processed. */
@@ -154,18 +155,21 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
-  // if hit missed and is user virtual address, try to find and load into memory
-  if (not_present && is_user_vaddr (fault_addr) &&
-      page_find_and_load_addr (&thread_current()->page_table, fault_addr)) {
-    return; // success load into memory
+  bool loaded = false;
+  if (not_present && fault_addr > USER_ADDRESS_BOTTOM && is_user_vaddr(fault_addr)) {
+    if (page_find_and_load (fault_addr)) {
+      loaded = true;
+    } else if (fault_addr >= f->esp - STACK_HEURISTIC) {
+      loaded = grow_stack (fault_addr);
+    }
   }
 
-  // if still failed to load it, it's really a page fault
-  printf ("Page fault at %p: %s error %s page in %s context.\n",
-          fault_addr,
-          not_present ? "not present" : "rights violation",
-          write ? "writing" : "reading",
-          user ? "user" : "kernel");
-  kill (f);
+  if (!loaded) {
+    printf ("Page fault at %p: %s error %s page in %s context.\n",
+            fault_addr,
+            not_present ? "not present" : "rights violation",
+            write ? "writing" : "reading",
+            user ? "user" : "kernel");
+    kill (f);
+  }
 }
-

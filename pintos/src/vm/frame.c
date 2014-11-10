@@ -1,78 +1,14 @@
 #include "vm/frame.h"
-#include <debug.h>
+#include "filesys/file.h"
 #include "threads/malloc.h"
-#include "threads/palloc.h"
 #include "threads/synch.h"
+#include "threads/thread.h"
+#include "userprog/pagedir.h"
+#include "userprog/syscall.h"
+#include "vm/swap.h"
 
-#define FRAME_ENTRY_SIZE sizeof(FRAME_entry_t)
-#define TABLE_NAME frame_table
-
-#define get_elem(FE_P)                  (&((FE_P)->elem))
-#define get_frame_entry(ELEM_P)         list_entry ((ELEM_P), FRAME_entry_t, elem)
-
-#define table_begin()                   get_frame_entry (list_begin (&TABLE_NAME))
-#define table_end()                     get_frame_entry (list_end (&TABLE_NAME))
-#define table_rbegin()                  get_frame_entry (list_rbegin (&TABLE_NAME))
-#define table_rend()                    get_frame_entry (list_rend (&TABLE_NAME))
-#define table_head()                    get_frame_entry (list_head (&TABLE_NAME))
-#define table_tail()                    get_frame_entry (list_tail (&TABLE_NAME))
-
-#define table_next(FE_P)                get_frame_entry (list_next (get_elem (FE_P)))
-#define table_prev(FE_P)                get_frame_entry (list_prev (get_elem (FE_P)))
-
-#define table_insert(FEE_P, FE_P)       list_insert (get_elem (FEE_P), get_elem (FE_P))
-#define table_append(FEE_P, FE_P)       table_insert (table_next (FEE_P), FE_P)
-#define table_push_front(FE_P)          list_push_front (&TABLE_NAME, get_elem (FE_P))
-#define table_push_back(FE_P)           list_push_back (&TABLE_NAME, get_elem (FE_P))
-#define table_remove(FE_P)              list_remove (get_elem (FE_P));
-
-#define lock_table()                    lock_acquire (&frame_table_lock);
-#define unlock_table()                  lock_release (&frame_table_lock);
-
-struct list TABLE_NAME;
 struct lock frame_table_lock;
-
-void * frame_evict (void);
-bool frame_found (FRAME_entry_t *entry);
-
-//
-//                           ,,
-//     `7MM"""Mq.            db                    mm
-//       MM   `MM.                                 MM
-//       MM   ,M9 `7Mb,od8 `7MM `7M'   `MF',6"Yb.mmMMmm .gP"Ya
-//       MMmmdM9    MM' "'   MM   VA   ,V 8)   MM  MM  ,M'   Yb
-//       MM         MM       MM    VA ,V   ,pm9MM  MM  8M""""""
-//       MM         MM       MM     VVV   8M   MM  MM  YM.    ,
-//     .JMML.     .JMML.   .JMML.    W    `Moo9^Yo.`Mbmo`Mbmmd'
-//
-//
-
-// evict oldest(first) element, and return the frame pointer
-void *
-frame_evict (void)
-{
-    // TODO: support swap
-    PANIC ("No available SWAP to evict!");
-}
-
-// return if the entry in the table
-bool
-frame_found (FRAME_entry_t *entry)
-{
-    bool found = false;
-    FRAME_entry_t *e;
-
-    lock_table ();
-    for (e = table_begin (); e != table_end (); e = table_next (e)) {
-        if (e == entry) {
-            found = true;
-            break;
-        }
-    }
-    unlock_table ();
-
-    return found;
-}
+struct list frame_table;
 
 //
 //                            ,,        ,,    ,,
@@ -86,56 +22,103 @@ frame_found (FRAME_entry_t *entry)
 //
 //
 
-void frame_init (void)
+void
+frame_table_init (void)
 {
     list_init (&frame_table);
     lock_init (&frame_table_lock);
 }
 
-// alloc new frame, return NULL if failed
-FRAME_entry_t *
-frame_create (enum palloc_flags flags, SP_entry_t *page_entry)
+void *
+frame_alloc (enum palloc_flags flags, struct SP_entry *page_entry)
 {
-    void *frame = palloc_get_page (flags);
-    if (!frame) {
-        frame = frame_evict ();
+    if ((flags & PAL_USER) == 0) {
+        return NULL;
     }
-    // evict should success or kernel panic
-    ASSERT (frame != NULL);
-
-    // create new entry
-    FRAME_entry_t *frame_entry = malloc (FRAME_ENTRY_SIZE);
-    frame_entry->frame = frame;
-    frame_entry->page_entry = page_entry;
-    page_entry->frame_entry = frame_entry;
-
-    // add to table
-    lock_table ();
-    table_push_back (frame_entry);
-    unlock_table ();
-
-    return frame_entry;
+    void *frame = palloc_get_page (flags);
+    if (frame) {
+        frame_add (frame, page_entry);
+    } else {
+        while (!frame) {
+            frame = frame_evict (flags);
+            lock_release (&frame_table_lock);
+        }
+        if (!frame) {
+            PANIC ("Frame evict failed. Swap is full!");
+        }
+        frame_add (frame, page_entry);
+    }
+    return frame;
 }
 
-void frame_destroy (FRAME_entry_t *frame_entry)
+void
+frame_free (void *frame)
 {
-    bool found = false;
-    FRAME_entry_t *e;
+    struct list_elem *e;
 
-    lock_table ();
-    for (e = table_begin (); e != table_end (); e = table_next (e)) {
-        if (e == frame_entry) {
-            found = true;
-            table_remove (e);
+    lock_acquire (&frame_table_lock);
+    for (e = list_begin (&frame_table); e != list_end (&frame_table); e = list_next (e)) {
+        struct frame_entry *frame_entry = list_entry (e, struct frame_entry, elem);
+        if (frame_entry->frame == frame) {
+            list_remove (e);
+            free (frame_entry);
+            palloc_free_page (frame);
             break;
         }
     }
-    unlock_table ();
+    lock_release (&frame_table_lock);
+}
 
-    if (!found) {
-        PANIC ("Can't find the frame to free!");
+void
+frame_add (void *frame, struct SP_entry *page_entry)
+{
+    struct frame_entry *frame_entry = malloc (sizeof (struct frame_entry));
+    frame_entry->frame = frame;
+    frame_entry->page_entry = page_entry;
+    frame_entry->thread = thread_current ();
+    lock_acquire (&frame_table_lock);
+    list_push_back (&frame_table, &frame_entry->elem);
+    lock_release (&frame_table_lock);
+}
+
+void *
+frame_evict (enum palloc_flags flags)
+{
+    lock_acquire (&frame_table_lock);
+    struct list_elem *e = list_begin (&frame_table);
+
+    while (true) {
+        struct frame_entry *frame_entry = list_entry (e, struct frame_entry, elem);
+        struct SP_entry *page_entry = frame_entry->page_entry;
+        if (!page_entry->pinned) {
+            struct thread *t = frame_entry->thread;
+            if (pagedir_is_accessed (t->pagedir, page_entry->page)) {
+                pagedir_set_accessed (t->pagedir, page_entry->page, false);
+            } else {
+                if (pagedir_is_dirty (t->pagedir, page_entry->page) ||
+                    page_entry->type == SP_SWAP) {
+                    if (page_entry->type == SP_MMAP) {
+                        lock_acquire (&filesys_lock);
+                        file_write_at (page_entry->file, frame_entry->frame,
+                                       page_entry->read_bytes,
+                                       page_entry->offset);
+                        lock_release (&filesys_lock);
+                    } else {
+                        page_entry->type = SP_SWAP;
+                        page_entry->swap_index = swap_out (frame_entry->frame);
+                    }
+                }
+                page_entry->is_loaded = false;
+                list_remove (&frame_entry->elem);
+                pagedir_clear_page (t->pagedir, page_entry->page);
+                palloc_free_page (frame_entry->frame);
+                free (frame_entry);
+                return palloc_get_page (flags);
+            }
+        }
+        e = list_next (e);
+        if (e == list_end (&frame_table)) {
+            e = list_begin (&frame_table);
+        }
     }
-
-    palloc_free_page(frame_entry->frame);
-    free (frame_entry);
 }
