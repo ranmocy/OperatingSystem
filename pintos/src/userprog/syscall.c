@@ -83,12 +83,12 @@ syscall_handler(struct intr_frame *f)
     case SYS_FILESIZE:
         f->eax = filesize(p[1]);
         break;
-    case SYS_READ:
+    case SYS_READ: // fd, *buffer, size
         check_valid_buffer((void *)p[2], (unsigned)p[3]);
         addr = vaddr_to_phyaddr(p[2]);
         f->eax = read(p[1], addr, (unsigned)p[3]);
         break;
-    case SYS_WRITE:
+    case SYS_WRITE: // fd, *buffer, size
         check_valid_buffer((void *)p[2], (unsigned)p[3]);
         if (p[1] == 1){
                 putbuf((const char*)p[2], p[3]);
@@ -136,7 +136,9 @@ syscall_handler(struct intr_frame *f)
 static void
 check_valid_pointer(const void *vaddr)
 {
-    if (!is_user_vaddr(vaddr) || vaddr < USER_ADDRESS_BOTTOM || pagedir_get_page(thread_current()->pagedir,vaddr)== NULL){
+    if (!is_user_vaddr(vaddr) || vaddr < USER_ADDRESS_BOTTOM ||
+        pagedir_get_page(thread_current()->pagedir,vaddr) == NULL ||
+        !page_find (vaddr)){
         syscall_exit(ERROR);
     }
 }
@@ -147,8 +149,7 @@ vaddr_to_phyaddr(void *vaddr){
     //        else exist with ERROR.
     check_valid_pointer(vaddr);
     void *ptr = pagedir_get_page(thread_current()->pagedir, vaddr);
-    if (!ptr)
-    {
+    if (!ptr) {
         syscall_exit(ERROR);
     }
     return ptr;

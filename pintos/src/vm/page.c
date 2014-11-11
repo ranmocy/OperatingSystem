@@ -55,7 +55,7 @@ page_action_func (struct hash_elem *e, void *aux UNUSED)
 }
 
 static struct SP_entry*
-get_page_entry (void *page)
+get_page_entry (const void *page)
 {
     struct SP_entry page_entry;
     page_entry.page = pg_round_down(page);
@@ -161,6 +161,11 @@ page_load (struct SP_entry *page_entry)
             PANIC ("SP type should not be ERROR");
     }
     return success;
+}
+
+bool
+page_find (const void * vaddr) {
+    return get_page_entry (vaddr) != NULL;
 }
 
 bool
