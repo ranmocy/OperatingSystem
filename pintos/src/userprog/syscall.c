@@ -379,15 +379,14 @@ syscall_exit (int rcode){
 static void
 syscall_handler (struct intr_frame *f)
 {
-    int *p = (int*)f->esp;
-    check_valid_pointer (p);
-
-    int event_id = *((int *)f->esp);
-    check_valid_pointer (p + arg_count[event_id]);
-
     current_esp = f->esp;
 
-    int addr;
+    void **p = f->esp; // parameters are a array of anything
+    check_valid_pointer (p);
+    int event_id = (int)*p;
+    check_valid_pointer (p + arg_count[event_id]);
+
+    void * addr;
     switch (event_id) {
     case SYS_CREATE:
         addr = vaddr_to_phyaddr (p[1]);
@@ -402,36 +401,36 @@ syscall_handler (struct intr_frame *f)
         f->eax = open ((const char *)addr);
         break;
     case SYS_FILESIZE:
-        f->eax = filesize (p[1]);
+        f->eax = filesize ((int)p[1]);
         break;
     case SYS_READ: // fd, *buffer, size
-        check_valid_buffer ((void *)p[2], (unsigned)p[3]);
+        check_valid_buffer (p[2], (unsigned)p[3]);
         addr = vaddr_to_phyaddr (p[2]);
-        f->eax = read (p[1], addr, (unsigned)p[3]);
+        f->eax = read ((int)p[1], addr, (unsigned)p[3]);
         break;
     case SYS_WRITE: // fd, *buffer, size
-        check_valid_buffer ((void *)p[2], (unsigned)p[3]);
-        if (p[1] == 1){
-                putbuf ((const char*)p[2], p[3]);
+        check_valid_buffer (p[2], (unsigned)p[3]);
+        if ((int)p[1] == 1){
+            putbuf ((const char*)p[2], (size_t)p[3]);
         } else{
             addr = vaddr_to_phyaddr (p[2]);
-            f->eax = write (p[1], addr, (unsigned)p[3]);
+            f->eax = write ((int)p[1], addr, (unsigned)p[3]);
         }
         break;
     case SYS_SEEK:
-        seek (p[1], (unsigned)p[2]);
+        seek ((int)p[1], (unsigned)p[2]);
         break;
     case SYS_TELL:
-        f->eax = tell (p[1]);
+        f->eax = tell ((int)p[1]);
         break;
     case SYS_CLOSE:
-        close (p[1]);
+        close ((int)p[1]);
         break;
     case SYS_WAIT:
-        f->eax = process_wait (p[1]);
+        f->eax = process_wait ((tid_t)p[1]);
         break;
     case SYS_EXIT:
-        syscall_exit (p[1]);
+        syscall_exit ((int)p[1]);
         break;
     case SYS_HALT:
         shutdown_power_off ();
@@ -440,11 +439,11 @@ syscall_handler (struct intr_frame *f)
         f->eax = process_execute (vaddr_to_phyaddr ((void*)p[1]));
         break;
     case SYS_MMAP: {
-        f->eax = mmap (p[2], (void *) p[1]);
+        f->eax = mmap ((int)p[2], (void *) p[1]);
         break;
     }
     case SYS_MUNMAP: {
-        munmap (p[0]);
+        munmap ((int)p[0]);
         break;
     }
     default:
