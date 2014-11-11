@@ -169,14 +169,24 @@ page_find (const void * vaddr) {
 }
 
 bool
-page_find_and_load (void * vaddr)
+page_find_and_load (const void * vaddr, const void * esp)
 {
-    struct SP_entry *page_entry = get_page_entry (vaddr);
-    if (!page_entry) {
+    if (!is_user_vaddr (vaddr) || vaddr < USER_ADDRESS_BOTTOM) {
         return false;
     }
-    page_entry->pinned = false;
-    return page_load (page_entry);
+
+    struct SP_entry *page_entry = get_page_entry (vaddr);
+    if (page_entry) {
+        bool loaded = page_load (page_entry);
+        if (loaded) {
+            page_entry->pinned = false;
+        }
+        return loaded;
+    } else if (vaddr >= esp - STACK_HEURISTIC) {
+        return grow_stack ((void *) vaddr);
+    } else {
+        return false;
+    }
 }
 
 bool

@@ -155,21 +155,15 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
-  bool loaded = false;
-  if (not_present && fault_addr > USER_ADDRESS_BOTTOM && is_user_vaddr(fault_addr)) {
-    if (page_find_and_load (fault_addr)) {
-      loaded = true;
-    } else if (fault_addr >= f->esp - STACK_HEURISTIC) {
-      loaded = grow_stack (fault_addr);
-    }
+  // only if it's a missing and by user, it should try to fixed.
+  if (not_present && user && page_find_and_load (fault_addr, f->esp)) {
+    return; // success fix the problem
   }
 
-  if (!loaded) {
-    printf ("Page fault at %p: %s error %s page in %s context.\n",
-            fault_addr,
-            not_present ? "not present" : "rights violation",
-            write ? "writing" : "reading",
-            user ? "user" : "kernel");
-    kill (f);
-  }
+  printf ("Page fault at %p: %s error %s page in %s context.\n",
+          fault_addr,
+          not_present ? "not present" : "rights violation",
+          write ? "writing" : "reading",
+          user ? "user" : "kernel");
+  kill (f);
 }

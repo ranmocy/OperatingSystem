@@ -57,17 +57,19 @@ syscall_init(void)
     intr_register_int(0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
+void *current_esp = NULL;
 int arg_count[] = {0, 1, 1, 1, 2, 1, 1, 1, 3, 3, 2, 1, 1};
 
 static void
 syscall_handler(struct intr_frame *f)
 {
+    current_esp = f->esp;
 
     int *p = (int*)f->esp;
     int addr;
-    check_valid_pointer(p);
-    check_valid_pointer(p + arg_count[*p]);
-    switch (*p){
+    check_valid_pointer (p);
+    check_valid_pointer (p + arg_count[*p]);
+    switch (*p) {
     case SYS_CREATE:
         addr = vaddr_to_phyaddr(p[1]);
         f->eax = create((const char *)addr, (unsigned)p[2]);
@@ -136,10 +138,14 @@ syscall_handler(struct intr_frame *f)
 static void
 check_valid_pointer(const void *vaddr)
 {
-    if (!is_user_vaddr(vaddr) || vaddr < USER_ADDRESS_BOTTOM ||
-        pagedir_get_page(thread_current()->pagedir,vaddr) == NULL ||
-        !page_find (vaddr)){
-        syscall_exit(ERROR);
+    // if not a valid user addr, exit with ERROR
+    if (!is_user_vaddr(vaddr) || vaddr < USER_ADDRESS_BOTTOM) {
+        syscall_exit (ERROR);
+    }
+    // if can't find in pagedir and sup page table, exit with ERROR
+    if (pagedir_get_page (thread_current()->pagedir, vaddr) == NULL &&
+        !page_find_and_load (vaddr, current_esp)) {
+        syscall_exit (ERROR);
     }
 }
 
