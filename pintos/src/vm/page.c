@@ -167,6 +167,9 @@ bool
 page_find_and_load (void * vaddr)
 {
     struct SP_entry *page_entry = get_page_entry (vaddr);
+    if (!page_entry) {
+        return false;
+    }
     page_entry->pinned = false;
     return page_load (page_entry);
 }
