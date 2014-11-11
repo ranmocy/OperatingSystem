@@ -379,39 +379,39 @@ syscall_exit (int rcode){
 static void
 syscall_handler (struct intr_frame *f)
 {
-    current_esp = f->esp;
-
     int *p = (int*)f->esp;
     int addr;
+
+    current_esp = f->esp;
     check_valid_pointer (p);
     check_valid_pointer (p + arg_count[*p]);
+
     switch (*p) {
     case SYS_CREATE:
         addr = vaddr_to_phyaddr (p[1]);
-        f->eax = create ( (const char *)addr, (unsigned)p[2]);
+        f->eax = create ((const char *)addr, (unsigned)p[2]);
         break;
     case SYS_REMOVE:
         addr = vaddr_to_phyaddr (p[1]);
-        f->eax = remove ( (const char *)addr);
+        f->eax = remove ((const char *)addr);
         break;
     case SYS_OPEN:
         addr = vaddr_to_phyaddr (p[1]);
-        f->eax = open ( (const char *)addr);
+        f->eax = open ((const char *)addr);
         break;
     case SYS_FILESIZE:
         f->eax = filesize (p[1]);
         break;
     case SYS_READ: // fd, *buffer, size
-        check_valid_buffer ( (void *)p[2], (unsigned)p[3]);
+        check_valid_buffer ((void *)p[2], (unsigned)p[3]);
         addr = vaddr_to_phyaddr (p[2]);
         f->eax = read (p[1], addr, (unsigned)p[3]);
         break;
     case SYS_WRITE: // fd, *buffer, size
-        check_valid_buffer ( (void *)p[2], (unsigned)p[3]);
+        check_valid_buffer ((void *)p[2], (unsigned)p[3]);
         if (p[1] == 1){
-                putbuf ( (const char*)p[2], p[3]);
-        }
-        else{
+                putbuf ((const char*)p[2], p[3]);
+        } else{
             addr = vaddr_to_phyaddr (p[2]);
             f->eax = write (p[1], addr, (unsigned)p[3]);
         }
@@ -435,7 +435,7 @@ syscall_handler (struct intr_frame *f)
         shutdown_power_off ();
         break;
     case SYS_EXEC:
-        f->eax = process_execute (vaddr_to_phyaddr ( (void*)p[1]));
+        f->eax = process_execute (vaddr_to_phyaddr ((void*)p[1]));
         break;
     case SYS_MMAP: {
         f->eax = mmap (p[2], (void *) p[1]);
