@@ -52,19 +52,16 @@ void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
 
-static void
-syscall_exit (int rcode){
-    struct list_elem* e;
-    struct thread* cur = thread_current ();
-    while (!list_empty (&cur->file_list))
-    {
-        e = list_begin (&cur->file_list);
-        close (list_entry (e, struct process_file_record, elem)->fd);
-    }
-    printf ("%s: exit(%d)\n", cur->name, rcode);
-    cur->ret = rcode;
-    thread_exit ();
-}
+struct file* process_get_file (int fd);
+int process_add_file (struct file *f);
+void process_close_file (int fd);
+bool process_add_mmap (struct SP_entry *page_entry);
+void process_remove_mmap (int mapping);
+
+int mmap (int fd, void *addr);
+void munmap (int mapping);
+
+static void syscall_exit (int rcode);
 
 //
 //                   ,,
@@ -92,7 +89,7 @@ check_valid_pointer (const void *vaddr)
     }
 }
 
-void
+static void
 check_valid_buffer (void* buffer, unsigned size)
 {
     unsigned i;
@@ -114,18 +111,6 @@ vaddr_to_phyaddr (void *vaddr){
     }
     return ptr;
 }
-
-
-struct file* process_get_file (int fd);
-int process_add_file (struct file *f);
-void process_close_file (int fd);
-bool process_add_mmap (struct SP_entry *page_entry);
-void process_remove_mmap (int mapping);
-
-int mmap (int fd, void *addr);
-void munmap (int mapping);
-
-
 
 //
 //                ,,    ,,
@@ -376,6 +361,20 @@ void munmap (int mapping)
 //     .JMML.  .JMML.`Moo9^Yo..JMML  JMML.`Wbmd"MML..JMML.`Mbmmd'.JMML.
 //
 //
+
+static void
+syscall_exit (int rcode){
+    struct list_elem* e;
+    struct thread* cur = thread_current ();
+    while (!list_empty (&cur->file_list))
+    {
+        e = list_begin (&cur->file_list);
+        close (list_entry (e, struct process_file_record, elem)->fd);
+    }
+    printf ("%s: exit(%d)\n", cur->name, rcode);
+    cur->ret = rcode;
+    thread_exit ();
+}
 
 static void
 syscall_handler (struct intr_frame *f)
