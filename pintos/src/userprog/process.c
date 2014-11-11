@@ -80,7 +80,8 @@ process_execute (const char *file_name)
   }
 }
 
-typedef void(*return_addr)();
+typedef void (*return_addr)(void);
+
 struct main_arg{
   int argc;
   char** argv;
@@ -144,7 +145,7 @@ start_process (void *arg_)
 
 
     if_.esp =  (void*)main_arg - sizeof(return_addr);
-    *((return_addr*)(if_.esp)) = 0x0;
+    *((return_addr *)(if_.esp)) = 0x0;
   }
   palloc_free_page(arg_);
 
