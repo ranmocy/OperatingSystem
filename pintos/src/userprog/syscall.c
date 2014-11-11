@@ -380,13 +380,15 @@ static void
 syscall_handler (struct intr_frame *f)
 {
     int *p = (int*)f->esp;
-    int addr;
+    check_valid_pointer (p);
+
+    int event_id = *((int *)f->esp);
+    check_valid_pointer (p + arg_count[event_id]);
 
     current_esp = f->esp;
-    check_valid_pointer (p);
-    check_valid_pointer (p + arg_count[*p]);
 
-    switch (*p) {
+    int addr;
+    switch (event_id) {
     case SYS_CREATE:
         addr = vaddr_to_phyaddr (p[1]);
         f->eax = create ((const char *)addr, (unsigned)p[2]);
