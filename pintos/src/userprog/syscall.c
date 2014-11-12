@@ -383,69 +383,77 @@ syscall_handler (struct intr_frame *f)
     int event_id = (int)p[0];
     check_valid_pointer (p + arg_count[event_id], false); // check the last
 
-    void *addr;
     switch (event_id) {
-    case SYS_CREATE:
-        addr = get_page (p[1]);
-        f->eax = create ((const char *)addr, (unsigned)p[2]);
-        break;
-    case SYS_REMOVE:
-        addr = get_page (p[1]);
-        f->eax = remove ((const char *)addr);
-        break;
-    case SYS_OPEN:
-        addr = get_page (p[1]);
-        f->eax = open ((const char *)addr);
-        break;
-    case SYS_FILESIZE:
-        f->eax = filesize ((int)p[1]);
-        break;
-    case SYS_READ: // fd, *buffer, size
-        check_valid_buffer (p[2], (unsigned)p[3], false);
-        addr = get_page (p[2]);
-        f->eax = read ((int)p[1], addr, (unsigned)p[3]);
-        break;
-    case SYS_WRITE: // fd, *buffer, size
-        check_valid_buffer (p[2], (unsigned)p[3], true);
-        if ((int)p[1] == 1){
-            putbuf ((const char*)p[2], (size_t)p[3]);
-        } else{
-            addr = get_page (p[2]);
-            f->eax = write ((int)p[1], addr, (unsigned)p[3]);
+        case SYS_CREATE: {
+            f->eax = create ((char *)get_page (p[1]), (unsigned)p[2]);
+            break;
         }
-        break;
-    case SYS_SEEK:
-        seek ((int)p[1], (unsigned)p[2]);
-        break;
-    case SYS_TELL:
-        f->eax = tell ((int)p[1]);
-        break;
-    case SYS_CLOSE:
-        close ((int)p[1]);
-        break;
-    case SYS_WAIT:
-        f->eax = process_wait ((tid_t)p[1]);
-        break;
-    case SYS_EXIT:
-        syscall_exit ((int)p[1]);
-        break;
-    case SYS_HALT:
-        shutdown_power_off ();
-        break;
-    case SYS_EXEC:
-        f->eax = process_execute (get_page ((void*)p[1]));
-        break;
-    case SYS_MMAP: {
-        f->eax = mmap ((int)p[2], (void *) p[1]);
-        break;
-    }
-    case SYS_MUNMAP: {
-        munmap ((int)p[0]);
-        break;
-    }
-    default:
-        printf ("Oops\n");
-        thread_exit ();
+        case SYS_REMOVE: {
+            f->eax = remove ((char *)get_page (p[1]));
+            break;
+        }
+        case SYS_OPEN: {
+            f->eax = open ((char *)get_page (p[1]));
+            break;
+        }
+        case SYS_FILESIZE: {
+            f->eax = filesize ((int)p[1]);
+            break;
+        }
+        case SYS_READ: { // fd, *buffer, size
+            check_valid_buffer (p[2], (unsigned)p[3], false);
+            f->eax = read ((int)p[1], get_page (p[2]), (unsigned)p[3]);
+            break;
+        }
+        case SYS_WRITE: { // fd, *buffer, size
+            check_valid_buffer (p[2], (unsigned)p[3], true);
+            if ((int)p[1] == 1) { // STDOUT
+                putbuf ((char *)p[2], (size_t)p[3]);
+            } else{
+                f->eax = write ((int)p[1], get_page (p[2]), (unsigned)p[3]);
+            }
+            break;
+        }
+        case SYS_SEEK: {
+            seek ((int)p[1], (unsigned)p[2]);
+            break;
+        }
+        case SYS_TELL: {
+            f->eax = tell ((int)p[1]);
+            break;
+        }
+        case SYS_CLOSE: {
+            close ((int)p[1]);
+            break;
+        }
+        case SYS_WAIT: {
+            f->eax = process_wait ((tid_t)p[1]);
+            break;
+        }
+        case SYS_EXIT:{
+            syscall_exit ((int)p[1]);
+            break;
+        }
+        case SYS_HALT:{
+            shutdown_power_off ();
+            break;
+        }
+        case SYS_EXEC: {
+            f->eax = process_execute (get_page ((void *)p[1]));
+            break;
+        }
+        case SYS_MMAP: { // fd, addr
+            f->eax = mmap ((int)p[2], (void *) p[1]);
+            break;
+        }
+        case SYS_MUNMAP: {
+            munmap ((int)p[0]);
+            break;
+        }
+        default: {
+            printf ("Oops\n");
+            thread_exit ();
+        }
     }
 }
 
