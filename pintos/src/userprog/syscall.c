@@ -384,44 +384,44 @@ syscall_handler (struct intr_frame *f)
     check_valid_pointer (p + arg_count[event_id], false); // check the last
 
     switch (event_id) {
-        case SYS_HALT:{
+        case SYS_HALT:{ // 0
             shutdown_power_off ();
             break;
         }
-        case SYS_EXIT:{
+        case SYS_EXIT:{ // 1
             syscall_exit ((int)p[1]);
             break;
         }
-        case SYS_EXEC: {
+        case SYS_EXEC: { // 2, filename
             f->eax = process_execute (get_page ((void *)p[1]));
             break;
         }
-        case SYS_WAIT: {
+        case SYS_WAIT: { // 3, tid
             f->eax = process_wait ((tid_t)p[1]);
             break;
         }
-        case SYS_CREATE: {
+        case SYS_CREATE: { // 4, filename, size
             f->eax = create ((char *)get_page (p[1]), (unsigned)p[2]);
             break;
         }
-        case SYS_REMOVE: {
+        case SYS_REMOVE: { // 5, filename
             f->eax = remove ((char *)get_page (p[1]));
             break;
         }
-        case SYS_OPEN: {
+        case SYS_OPEN: { // 6, filename
             f->eax = open ((char *)get_page (p[1]));
             break;
         }
-        case SYS_FILESIZE: {
+        case SYS_FILESIZE: { // 7, fd
             f->eax = filesize ((int)p[1]);
             break;
         }
-        case SYS_READ: { // fd, *buffer, size
+        case SYS_READ: { // 8, fd, *buffer, size
             check_valid_buffer (p[2], (unsigned)p[3], false);
             f->eax = read ((int)p[1], get_page (p[2]), (unsigned)p[3]);
             break;
         }
-        case SYS_WRITE: { // fd, *buffer, size
+        case SYS_WRITE: { // 9, fd, *buffer, size
             check_valid_buffer (p[2], (unsigned)p[3], true);
             if ((int)p[1] == 1) { // STDOUT
                 putbuf ((char *)p[2], (size_t)p[3]);
@@ -430,23 +430,23 @@ syscall_handler (struct intr_frame *f)
             }
             break;
         }
-        case SYS_SEEK: {
+        case SYS_SEEK: { // 10, fd, position
             seek ((int)p[1], (unsigned)p[2]);
             break;
         }
-        case SYS_TELL: {
+        case SYS_TELL: { // 11, fd
             f->eax = tell ((int)p[1]);
             break;
         }
-        case SYS_CLOSE: {
+        case SYS_CLOSE: { // 12, fd
             close ((int)p[1]);
             break;
         }
-        case SYS_MMAP: { // fd, addr
+        case SYS_MMAP: { // 13, fd, addr
             f->eax = mmap ((int)p[1], (void *) p[2]);
             break;
         }
-        case SYS_MUNMAP: { // fd
+        case SYS_MUNMAP: { // 14, fd
             munmap ((int)p[1]);
             break;
         }
