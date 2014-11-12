@@ -156,7 +156,7 @@ page_fault (struct intr_frame *f)
   user = (f->error_code & PF_U) != 0;
 
   // only if it's a missing and by user, it should try to fixed.
-  if (not_present && user && page_find_and_load (fault_addr, f->esp)) {
+  if (not_present && user && page_find_and_load (fault_addr, f->esp, write)) {
     return; // success fix the problem
   }
 

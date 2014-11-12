@@ -169,7 +169,7 @@ page_find (const void * vaddr) {
 }
 
 bool
-page_find_and_load (const void * vaddr, const void * esp)
+page_find_and_load (const void * vaddr, const void * esp, const bool to_write)
 {
     if (!is_user_vaddr (vaddr) || vaddr < USER_ADDRESS_BOTTOM) {
         return false;
@@ -177,11 +177,16 @@ page_find_and_load (const void * vaddr, const void * esp)
 
     struct SP_entry *page_entry = get_page_entry (vaddr);
     if (page_entry) {
-        bool loaded = page_load (page_entry);
-        if (loaded) {
-            page_entry->pinned = false;
+        if (to_write && !page_entry->writable) {
+            return false;
         }
-        return loaded;
+
+        if (page_load (page_entry)) {
+            page_entry->pinned = false;
+            return true;
+        } else {
+            return false;
+        }
     } else if (vaddr >= esp - STACK_HEURISTIC) {
         return grow_stack ((void *) vaddr);
     } else {

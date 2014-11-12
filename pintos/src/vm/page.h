@@ -39,7 +39,7 @@ void page_table_destroy (struct hash *page_table);
 
 bool page_load (struct SP_entry *page_entry);
 bool page_find (const void * vaddr);
-bool page_find_and_load (const void * vaddr, const void * esp);
+bool page_find_and_load (const void * vaddr, const void * esp, const bool to_write);
 bool page_add_file (struct file *file, int32_t ofs, uint8_t *upage,
                     uint32_t read_bytes, uint32_t zero_bytes,
                     bool writable);

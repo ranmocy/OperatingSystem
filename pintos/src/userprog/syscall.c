@@ -76,7 +76,7 @@ static void syscall_exit (int rcode);
 //
 
 static void
-check_valid_pointer (const void *vaddr)
+check_valid_pointer (const void *vaddr, const bool to_write)
 {
     // if not a valid user addr, exit with ERROR
     if (!is_user_vaddr (vaddr) || vaddr < USER_ADDRESS_BOTTOM) {
@@ -84,27 +84,24 @@ check_valid_pointer (const void *vaddr)
     }
     // if can't find in pagedir and sup page table, exit with ERROR
     if (pagedir_get_page (thread_current ()->pagedir, vaddr) == NULL &&
-        !page_find_and_load (vaddr, current_esp)) {
+        !page_find_and_load (vaddr, current_esp, to_write)) {
         syscall_exit (ERROR);
     }
 }
 
 static void
-check_valid_buffer (void* buffer, unsigned size)
+check_valid_buffer (const void* buffer, const unsigned size, const bool to_write)
 {
     unsigned i;
     char* local_buffer = (char *)buffer;
     for (i = 0; i < size; i++) {
-        check_valid_pointer ( (const void*)local_buffer);
+        check_valid_pointer ((const void*)local_buffer, to_write);
         local_buffer++;
     }
 }
 
 static void*
-vaddr_to_phyaddr (void *vaddr){
-    // TO DO: verify the virtual memory exist, if exist return the physical address
-    //        else exist with ERROR.
-    check_valid_pointer (vaddr);
+get_page (void *vaddr){
     void *ptr = pagedir_get_page (thread_current ()->pagedir, vaddr);
     if (!ptr) {
         syscall_exit (ERROR);
@@ -382,38 +379,38 @@ syscall_handler (struct intr_frame *f)
     current_esp = f->esp;
 
     void **p = f->esp; // parameters are a array of anything
-    check_valid_pointer (p);
-    int event_id = (int)*p;
-    check_valid_pointer (p + arg_count[event_id]);
+    check_valid_pointer (p, false); // check the first parameter pointer
+    int event_id = (int)p[0];
+    check_valid_pointer (p + arg_count[event_id], false); // check the last
 
-    void * addr;
+    void *addr;
     switch (event_id) {
     case SYS_CREATE:
-        addr = vaddr_to_phyaddr (p[1]);
+        addr = get_page (p[1]);
         f->eax = create ((const char *)addr, (unsigned)p[2]);
         break;
     case SYS_REMOVE:
-        addr = vaddr_to_phyaddr (p[1]);
+        addr = get_page (p[1]);
         f->eax = remove ((const char *)addr);
         break;
     case SYS_OPEN:
-        addr = vaddr_to_phyaddr (p[1]);
+        addr = get_page (p[1]);
         f->eax = open ((const char *)addr);
         break;
     case SYS_FILESIZE:
         f->eax = filesize ((int)p[1]);
         break;
     case SYS_READ: // fd, *buffer, size
-        check_valid_buffer (p[2], (unsigned)p[3]);
-        addr = vaddr_to_phyaddr (p[2]);
+        check_valid_buffer (p[2], (unsigned)p[3], false);
+        addr = get_page (p[2]);
         f->eax = read ((int)p[1], addr, (unsigned)p[3]);
         break;
     case SYS_WRITE: // fd, *buffer, size
-        check_valid_buffer (p[2], (unsigned)p[3]);
+        check_valid_buffer (p[2], (unsigned)p[3], true);
         if ((int)p[1] == 1){
             putbuf ((const char*)p[2], (size_t)p[3]);
         } else{
-            addr = vaddr_to_phyaddr (p[2]);
+            addr = get_page (p[2]);
             f->eax = write ((int)p[1], addr, (unsigned)p[3]);
         }
         break;
@@ -436,7 +433,7 @@ syscall_handler (struct intr_frame *f)
         shutdown_power_off ();
         break;
     case SYS_EXEC:
-        f->eax = process_execute (vaddr_to_phyaddr ((void*)p[1]));
+        f->eax = process_execute (get_page ((void*)p[1]));
         break;
     case SYS_MMAP: {
         f->eax = mmap ((int)p[2], (void *) p[1]);
