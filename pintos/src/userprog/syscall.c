@@ -28,7 +28,6 @@ struct process_mmap_record {
 
 
 void *current_esp = NULL;
-int arg_count[] = {0, 1, 1, 1, 2, 1, 1, 1, 3, 3, 2, 1, 1};
 
 //
 //                           ,,
@@ -373,6 +372,7 @@ syscall_exit (int rcode){
     thread_exit ();
 }
 
+static int arg_count[] = {0, 1, 1, 1, 2, 1, 1, 1, 3, 3, 2, 1, 1, 2, 1};
 static void
 syscall_handler (struct intr_frame *f)
 {
@@ -381,6 +381,7 @@ syscall_handler (struct intr_frame *f)
     void **p = f->esp; // parameters are a array of anything
     check_valid_pointer (p, false); // check the first parameter pointer
     int event_id = (int)p[0];
+    ASSERT (event_id <= 14 && "We only support syscall from 0 to 14.");
     check_valid_pointer (p + arg_count[event_id], false); // check the last
 
     switch (event_id) {
@@ -388,7 +389,7 @@ syscall_handler (struct intr_frame *f)
             shutdown_power_off ();
             break;
         }
-        case SYS_EXIT:{ // 1
+        case SYS_EXIT:{ // 1, code
             syscall_exit ((int)p[1]);
             break;
         }
