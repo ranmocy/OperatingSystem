@@ -87,14 +87,11 @@ load_swap (struct SP_entry *page_entry)
 static bool
 load_file (struct SP_entry *page_entry)
 {
-    enum palloc_flags flags = PAL_USER;
-    if (page_entry->read_bytes == 0) {
-        flags |= PAL_ZERO;
-    }
-    void *frame = frame_alloc (flags, page_entry);
+    void *frame = frame_alloc (PAL_USER, page_entry);
     if (!frame) {
         return false;
     }
+
     if (page_entry->read_bytes > 0) {
         lock_acquire (&filesys_lock);
         if ((int) page_entry->read_bytes != file_read_at (page_entry->file, frame, page_entry->read_bytes, page_entry->offset)) {
@@ -103,8 +100,9 @@ load_file (struct SP_entry *page_entry)
             return false;
         }
         lock_release (&filesys_lock);
-        memset (frame + page_entry->read_bytes, 0, page_entry->zero_bytes);
     }
+
+    memset (frame + page_entry->read_bytes, 0, page_entry->zero_bytes);
 
     if (!install_page (page_entry->page, frame, page_entry->writable)) {
         frame_free (frame);
