@@ -92,11 +92,10 @@ static void
 check_valid_buffer (const void* buffer, const unsigned size, const bool to_write)
 {
     unsigned i;
-    char* local_buffer = (char *)buffer;
-    for (i = 0; i < size; i++) {
-        check_valid_pointer ((const void*)local_buffer, to_write);
-        local_buffer++;
+    for (i = 0; i < size; i += PGSIZE) {
+        check_valid_pointer (buffer + i, to_write);
     }
+    check_valid_pointer (buffer + size - 1, to_write);
 }
 
 //
