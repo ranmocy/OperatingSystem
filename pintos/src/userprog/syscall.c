@@ -418,12 +418,12 @@ syscall_handler (struct intr_frame *f)
             break;
         }
         case SYS_READ: { // 8, fd, *buffer, size
-            check_valid_buffer (p[2], (unsigned)p[3], false);
+            check_valid_buffer (p[2], (unsigned)p[3], true);
             f->eax = read ((int)p[1], get_page (p[2]), (unsigned)p[3]);
             break;
         }
         case SYS_WRITE: { // 9, fd, *buffer, size
-            check_valid_buffer (p[2], (unsigned)p[3], true);
+            check_valid_buffer (p[2], (unsigned)p[3], false);
             if ((int)p[1] == 1) { // STDOUT
                 putbuf ((char *)p[2], (size_t)p[3]);
             } else{
