@@ -384,6 +384,22 @@ syscall_handler (struct intr_frame *f)
     check_valid_pointer (p + arg_count[event_id], false); // check the last
 
     switch (event_id) {
+        case SYS_HALT:{
+            shutdown_power_off ();
+            break;
+        }
+        case SYS_EXIT:{
+            syscall_exit ((int)p[1]);
+            break;
+        }
+        case SYS_EXEC: {
+            f->eax = process_execute (get_page ((void *)p[1]));
+            break;
+        }
+        case SYS_WAIT: {
+            f->eax = process_wait ((tid_t)p[1]);
+            break;
+        }
         case SYS_CREATE: {
             f->eax = create ((char *)get_page (p[1]), (unsigned)p[2]);
             break;
@@ -424,22 +440,6 @@ syscall_handler (struct intr_frame *f)
         }
         case SYS_CLOSE: {
             close ((int)p[1]);
-            break;
-        }
-        case SYS_WAIT: {
-            f->eax = process_wait ((tid_t)p[1]);
-            break;
-        }
-        case SYS_EXIT:{
-            syscall_exit ((int)p[1]);
-            break;
-        }
-        case SYS_HALT:{
-            shutdown_power_off ();
-            break;
-        }
-        case SYS_EXEC: {
-            f->eax = process_execute (get_page ((void *)p[1]));
             break;
         }
         case SYS_MMAP: { // fd, addr
