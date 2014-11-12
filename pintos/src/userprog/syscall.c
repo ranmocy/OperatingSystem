@@ -385,6 +385,7 @@ syscall_handler (struct intr_frame *f)
             break;
         }
         case SYS_EXEC: { // 2, filename
+            check_valid_pointer (p[1], false);
             f->eax = process_execute (p[1]);
             break;
         }
@@ -393,10 +394,12 @@ syscall_handler (struct intr_frame *f)
             break;
         }
         case SYS_CREATE: { // 4, filename, size
+            check_valid_pointer (p[1], false);
             f->eax = create ((char *)p[1], (unsigned)p[2]);
             break;
         }
         case SYS_REMOVE: { // 5, filename
+            check_valid_pointer (p[1], false);
             f->eax = remove ((char *)p[1]);
             break;
         }
@@ -436,6 +439,7 @@ syscall_handler (struct intr_frame *f)
             break;
         }
         case SYS_MMAP: { // 13, fd, addr
+            check_valid_pointer (p[2], false);
             f->eax = mmap ((int)p[1], (void *) p[2]);
             break;
         }
