@@ -99,15 +99,6 @@ check_valid_buffer (const void* buffer, const unsigned size, const bool to_write
     }
 }
 
-static void*
-get_page (void *vaddr){
-    void *ptr = pagedir_get_page (thread_current ()->pagedir, vaddr);
-    if (!ptr) {
-        syscall_exit (ERROR);
-    }
-    return ptr;
-}
-
 //
 //                ,,    ,,
 //     `7MM"""YMM db  `7MM
@@ -394,7 +385,7 @@ syscall_handler (struct intr_frame *f)
             break;
         }
         case SYS_EXEC: { // 2, filename
-            f->eax = process_execute (get_page ((void *)p[1]));
+            f->eax = process_execute (p[1]);
             break;
         }
         case SYS_WAIT: { // 3, tid
@@ -402,15 +393,16 @@ syscall_handler (struct intr_frame *f)
             break;
         }
         case SYS_CREATE: { // 4, filename, size
-            f->eax = create ((char *)get_page (p[1]), (unsigned)p[2]);
+            f->eax = create ((char *)p[1], (unsigned)p[2]);
             break;
         }
         case SYS_REMOVE: { // 5, filename
-            f->eax = remove ((char *)get_page (p[1]));
+            f->eax = remove ((char *)p[1]);
             break;
         }
         case SYS_OPEN: { // 6, filename
-            f->eax = open ((char *)get_page (p[1]));
+            check_valid_pointer (p[1], false);
+            f->eax = open ((char *)p[1]);
             break;
         }
         case SYS_FILESIZE: { // 7, fd
@@ -419,7 +411,7 @@ syscall_handler (struct intr_frame *f)
         }
         case SYS_READ: { // 8, fd, *buffer, size
             check_valid_buffer (p[2], (unsigned)p[3], true);
-            f->eax = read ((int)p[1], get_page (p[2]), (unsigned)p[3]);
+            f->eax = read ((int)p[1], p[2], (unsigned)p[3]);
             break;
         }
         case SYS_WRITE: { // 9, fd, *buffer, size
@@ -427,7 +419,7 @@ syscall_handler (struct intr_frame *f)
             if ((int)p[1] == 1) { // STDOUT
                 putbuf ((char *)p[2], (size_t)p[3]);
             } else{
-                f->eax = write ((int)p[1], get_page (p[2]), (unsigned)p[3]);
+                f->eax = write ((int)p[1], p[2], (unsigned)p[3]);
             }
             break;
         }
