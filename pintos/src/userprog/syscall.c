@@ -443,11 +443,11 @@ syscall_handler (struct intr_frame *f)
             break;
         }
         case SYS_MMAP: { // fd, addr
-            f->eax = mmap ((int)p[2], (void *) p[1]);
+            f->eax = mmap ((int)p[1], (void *) p[2]);
             break;
         }
-        case SYS_MUNMAP: {
-            munmap ((int)p[0]);
+        case SYS_MUNMAP: { // fd
+            munmap ((int)p[1]);
             break;
         }
         default: {
