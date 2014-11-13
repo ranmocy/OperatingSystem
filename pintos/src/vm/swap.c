@@ -24,13 +24,11 @@ void
 swap_init (void)
 {
     swap_block = block_get_role (BLOCK_SWAP);
-    if (!swap_block) {
-        return;
-    }
+    ASSERT (swap_block != NULL && "BLOCK_SWAP is needed for swap!");
+
     swap_map = bitmap_create (block_size (swap_block) / SECTORS_PER_PAGE );
-    if (!swap_map) {
-        return;
-    }
+    ASSERT (swap_map != NULL && "swap_map is needed for swap!");
+
     bitmap_set_all (swap_map, SWAP_FREE);
     lock_init (&swap_lock);
 }

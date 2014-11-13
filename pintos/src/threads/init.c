@@ -133,6 +133,10 @@ main (void)
   filesys_init (format_filesys);
 #endif
 
+#ifdef VM
+  swap_init ();
+#endif
+
   printf ("Boot complete.\n");
 
   /* Run actions specified on kernel command line. */
