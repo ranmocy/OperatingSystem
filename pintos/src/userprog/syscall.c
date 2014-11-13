@@ -82,8 +82,7 @@ check_valid_pointer (const void *vaddr, const bool to_write)
         syscall_exit (ERROR);
     }
     // if can't find in pagedir and sup page table, exit with ERROR
-    if (pagedir_get_page (thread_current ()->pagedir, vaddr) == NULL &&
-        !page_find_and_load (vaddr, current_esp, to_write)) {
+    if (!page_find_and_load (vaddr, current_esp, to_write)) {
         syscall_exit (ERROR);
     }
 }
