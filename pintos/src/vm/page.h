@@ -45,6 +45,6 @@ bool page_add_file (struct file *file, int32_t ofs, uint8_t *upage,
                     bool writable);
 bool page_add_mmap (struct file *file, int32_t ofs, uint8_t *upage,
                     uint32_t read_bytes, uint32_t zero_bytes);
-bool grow_stack (void *page);
+bool grow_stack (const void *page);
 
 #endif /* vm/page.h */

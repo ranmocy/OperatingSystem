@@ -179,7 +179,7 @@ page_find_and_load (const void * vaddr, const void * esp, const bool to_write)
             return false;
         }
 
-        if (page_load (page_entry)) {
+        if (page_entry->is_loaded || page_load (page_entry)) {
             page_entry->pinned = false;
             return true;
         } else {
@@ -246,7 +246,7 @@ page_add_mmap(struct file *file, int32_t ofs, uint8_t *upage,
 }
 
 bool
-grow_stack (void *page)
+grow_stack (const void *page)
 {
     if ((size_t) (PHYS_BASE - pg_round_down (page)) > MAX_STACK_SIZE) {
         return false;
