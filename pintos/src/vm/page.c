@@ -197,6 +197,8 @@ page_add_file (struct file *file, int32_t ofs, uint8_t *upage,
                uint32_t read_bytes, uint32_t zero_bytes,
                bool writable)
 {
+    ASSERT (read_bytes + zero_bytes == PGSIZE);
+
     struct SP_entry *page_entry = malloc (sizeof (struct SP_entry));
     if (!page_entry) {
         return false;
@@ -218,6 +220,8 @@ bool
 page_add_mmap(struct file *file, int32_t ofs, uint8_t *upage,
               uint32_t read_bytes, uint32_t zero_bytes)
 {
+    ASSERT (read_bytes + zero_bytes == PGSIZE);
+
     struct SP_entry *page_entry = malloc (sizeof (struct SP_entry));
     if (!page_entry) {
         return false;
