@@ -26,6 +26,9 @@
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
+#ifdef VM
+#include "userprog/syscall.h"
+#endif
 
 /* Indicate the point location of the fixed-point number. */
 #define FP_LOC 16	// amplify the number by 2**14 = 16384 times.
@@ -101,7 +104,7 @@ static bool thread_larger_func(const struct list_elem *a, const struct list_elem
 
 /*compare the two thread */
 bool thread_larger_func(const struct list_elem *a,
-                   const struct list_elem *b, void *aux)
+                   const struct list_elem *b, void *aux UNUSED)
 {
     struct thread *sa, *sb;
 
@@ -132,12 +135,12 @@ thread_init (void)
 
   lock_init (&tid_lock);
   if (thread_mlfqs){
-	  struct list* lp = ready_list;
-	  while (lp < READY_LIST_END)
-		list_init (lp++);
+    struct list* lp = ready_list;
+    while (lp < READY_LIST_END)
+    list_init (lp++);
   }
   else
-	  list_init (ready_list);
+    list_init (ready_list);
   list_init (&all_list);
 
   /* Set up a thread structure for the running thread. */
@@ -254,6 +257,9 @@ thread_create (const char *name, int priority,
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
   t->recent_cpu = thread_current()->recent_cpu;
+#ifdef VM
+  page_table_init (&t->page_table);
+#endif
 
   /* Stack frame for kernel_thread(). */
   kf = alloc_frame (t, sizeof *kf);
@@ -375,6 +381,11 @@ thread_exit (void)
 {
   ASSERT (!intr_context ());
 
+#ifdef VM
+  process_remove_mmap (CLOSE_ALL);
+  page_table_destroy (&thread_current()->page_table);
+#endif
+
 #ifdef USERPROG
   process_exit ();
 #endif
@@ -401,12 +412,13 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (cur != idle_thread)
-	  if (thread_mlfqs)
-		  list_push_back (ready_list + cur->priority - PRI_MIN, &cur->elem);
-	  else
-		list_insert_ordered (ready_list, &cur->elem,
-                     thread_larger_func, NULL);
+  if (cur != idle_thread) {
+    if (thread_mlfqs)
+      list_push_back (ready_list + cur->priority - PRI_MIN, &cur->elem);
+    else
+      list_insert_ordered (ready_list, &cur->elem,
+                           thread_larger_func, NULL);
+  }
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -669,6 +681,10 @@ init_thread (struct thread *t, const char *name, int priority)
   sema_init(&t->sema_exit_ack, 0);
   list_init(&t->file_list);
   t->fd = 2;
+#endif
+#ifdef VM
+  list_init(&t->mmap_list);
+  t->mapid = 0;
 #endif
   t->magic = THREAD_MAGIC;
 

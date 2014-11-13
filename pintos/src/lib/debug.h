@@ -18,6 +18,12 @@ void debug_panic (const char *file, int line, const char *function,
 void debug_backtrace (void);
 void debug_backtrace_all (void);
 
+#ifdef NDEBUG
+#define DEBUG(...) ()
+#else
+#define DEBUG(...) {printf("DEBUG: "); printf(__VA_ARGS__); printf("\n");}
+#endif
+
 #endif
 
 

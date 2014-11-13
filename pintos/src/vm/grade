@@ -1,0 +1,439 @@
+TOTAL TESTING SCORE: 86.4%
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+SUMMARY BY TEST SET
+
+Test Set                                      Pts Max  % Ttl  % Max
+--------------------------------------------- --- --- ------ ------
+tests/vm/Rubric.functionality                  40/ 55  36.4%/ 50.0%
+tests/vm/Rubric.robustness                     28/ 28  15.0%/ 15.0%
+tests/userprog/Rubric.functionality           108/108  10.0%/ 10.0%
+tests/userprog/Rubric.robustness               88/ 88   5.0%/  5.0%
+tests/filesys/base/Rubric                      30/ 30  20.0%/ 20.0%
+--------------------------------------------- --- --- ------ ------
+Total                                                  86.4%/100.0%
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+SUMMARY OF INDIVIDUAL TESTS
+
+Functionality of virtual memory subsystem (tests/vm/Rubric.functionality):
+	- Test stack growth.
+	     3/ 3 tests/vm/pt-grow-stack
+	     3/ 3 tests/vm/pt-grow-stk-sc
+	     3/ 3 tests/vm/pt-big-stk-obj
+	     3/ 3 tests/vm/pt-grow-pusha
+
+	- Test paging behavior.
+	     3/ 3 tests/vm/page-linear
+	  ** 0/ 3 tests/vm/page-parallel
+	     3/ 3 tests/vm/page-shuffle
+	     4/ 4 tests/vm/page-merge-seq
+	  ** 0/ 4 tests/vm/page-merge-par
+	  ** 0/ 4 tests/vm/page-merge-mm
+	  ** 0/ 4 tests/vm/page-merge-stk
+
+	- Test "mmap" system call.
+	     2/ 2 tests/vm/mmap-read
+	     2/ 2 tests/vm/mmap-write
+	     2/ 2 tests/vm/mmap-shuffle
+
+	     2/ 2 tests/vm/mmap-twice
+
+	     2/ 2 tests/vm/mmap-unmap
+	     1/ 1 tests/vm/mmap-exit
+
+	     3/ 3 tests/vm/mmap-clean
+
+	     2/ 2 tests/vm/mmap-close
+	     2/ 2 tests/vm/mmap-remove
+
+	- Section summary.
+	     16/ 20 tests passed
+	     40/ 55 points subtotal
+
+Robustness of virtual memory subsystem (tests/vm/Rubric.robustness):
+	- Test robustness of page table support.
+	     2/ 2 tests/vm/pt-bad-addr
+	     3/ 3 tests/vm/pt-bad-read
+	     2/ 2 tests/vm/pt-write-code
+	     3/ 3 tests/vm/pt-write-code2
+	     4/ 4 tests/vm/pt-grow-bad
+
+	- Test robustness of "mmap" system call.
+	     1/ 1 tests/vm/mmap-bad-fd
+	     1/ 1 tests/vm/mmap-inherit
+	     1/ 1 tests/vm/mmap-null
+	     1/ 1 tests/vm/mmap-zero
+
+	     2/ 2 tests/vm/mmap-misalign
+
+	     2/ 2 tests/vm/mmap-over-code
+	     2/ 2 tests/vm/mmap-over-data
+	     2/ 2 tests/vm/mmap-over-stk
+	     2/ 2 tests/vm/mmap-overlap
+
+
+	- Section summary.
+	     14/ 14 tests passed
+	     28/ 28 points subtotal
+
+Functionality of system calls (tests/userprog/Rubric.functionality):
+	- Test argument passing on Pintos command line.
+	     3/ 3 tests/userprog/args-none
+	     3/ 3 tests/userprog/args-single
+	     3/ 3 tests/userprog/args-multiple
+	     3/ 3 tests/userprog/args-many
+	     3/ 3 tests/userprog/args-dbl-space
+
+	- Test "create" system call.
+	     3/ 3 tests/userprog/create-empty
+	     3/ 3 tests/userprog/create-long
+	     3/ 3 tests/userprog/create-normal
+	     3/ 3 tests/userprog/create-exists
+
+	- Test "open" system call.
+	     3/ 3 tests/userprog/open-missing
+	     3/ 3 tests/userprog/open-normal
+	     3/ 3 tests/userprog/open-twice
+
+	- Test "read" system call.
+	     3/ 3 tests/userprog/read-normal
+	     3/ 3 tests/userprog/read-zero
+
+	- Test "write" system call.
+	     3/ 3 tests/userprog/write-normal
+	     3/ 3 tests/userprog/write-zero
+
+	- Test "close" system call.
+	     3/ 3 tests/userprog/close-normal
+
+	- Test "exec" system call.
+	     5/ 5 tests/userprog/exec-once
+	     5/ 5 tests/userprog/exec-multiple
+	     5/ 5 tests/userprog/exec-arg
+
+	- Test "wait" system call.
+	     5/ 5 tests/userprog/wait-simple
+	     5/ 5 tests/userprog/wait-twice
+
+	- Test "exit" system call.
+	     5/ 5 tests/userprog/exit
+
+	- Test "halt" system call.
+	     3/ 3 tests/userprog/halt
+
+	- Test recursive execution of user programs.
+	    15/15 tests/userprog/multi-recurse
+
+	- Test read-only executable feature.
+	     3/ 3 tests/userprog/rox-simple
+	     3/ 3 tests/userprog/rox-child
+	     3/ 3 tests/userprog/rox-multichild
+
+	- Section summary.
+	     28/ 28 tests passed
+	    108/108 points subtotal
+
+Robustness of system calls (tests/userprog/Rubric.robustness):
+	- Test robustness of file descriptor handling.
+	     2/ 2 tests/userprog/close-stdin
+	     2/ 2 tests/userprog/close-stdout
+	     2/ 2 tests/userprog/close-bad-fd
+	     2/ 2 tests/userprog/close-twice
+	     2/ 2 tests/userprog/read-bad-fd
+	     2/ 2 tests/userprog/read-stdout
+	     2/ 2 tests/userprog/write-bad-fd
+	     2/ 2 tests/userprog/write-stdin
+	     2/ 2 tests/userprog/multi-child-fd
+
+	- Test robustness of pointer handling.
+	     3/ 3 tests/userprog/create-bad-ptr
+	     3/ 3 tests/userprog/exec-bad-ptr
+	     3/ 3 tests/userprog/open-bad-ptr
+	     3/ 3 tests/userprog/read-bad-ptr
+	     3/ 3 tests/userprog/write-bad-ptr
+
+	- Test robustness of buffer copying across page boundaries.
+	     3/ 3 tests/userprog/create-bound
+	     3/ 3 tests/userprog/open-boundary
+	     3/ 3 tests/userprog/read-boundary
+	     3/ 3 tests/userprog/write-boundary
+
+	- Test handling of null pointer and empty strings.
+	     2/ 2 tests/userprog/create-null
+	     2/ 2 tests/userprog/open-null
+	     2/ 2 tests/userprog/open-empty
+
+	- Test robustness of system call implementation.
+	     3/ 3 tests/userprog/sc-bad-arg
+	     3/ 3 tests/userprog/sc-bad-sp
+	     5/ 5 tests/userprog/sc-boundary
+	     5/ 5 tests/userprog/sc-boundary-2
+
+	- Test robustness of "exec" and "wait" system calls.
+	     5/ 5 tests/userprog/exec-missing
+	     5/ 5 tests/userprog/wait-bad-pid
+	     5/ 5 tests/userprog/wait-killed
+
+	- Test robustness of exception handling.
+	     1/ 1 tests/userprog/bad-read
+	     1/ 1 tests/userprog/bad-write
+	     1/ 1 tests/userprog/bad-jump
+	     1/ 1 tests/userprog/bad-read2
+	     1/ 1 tests/userprog/bad-write2
+	     1/ 1 tests/userprog/bad-jump2
+
+	- Section summary.
+	     34/ 34 tests passed
+	     88/ 88 points subtotal
+
+Functionality of base file system (tests/filesys/base/Rubric):
+	- Test basic support for small files.
+	     1/ 1 tests/filesys/base/sm-create
+	     2/ 2 tests/filesys/base/sm-full
+	     2/ 2 tests/filesys/base/sm-random
+	     2/ 2 tests/filesys/base/sm-seq-block
+	     3/ 3 tests/filesys/base/sm-seq-random
+
+	- Test basic support for large files.
+	     1/ 1 tests/filesys/base/lg-create
+	     2/ 2 tests/filesys/base/lg-full
+	     2/ 2 tests/filesys/base/lg-random
+	     2/ 2 tests/filesys/base/lg-seq-block
+	     3/ 3 tests/filesys/base/lg-seq-random
+
+	- Test synchronized multiprogram access to files.
+	     4/ 4 tests/filesys/base/syn-read
+	     4/ 4 tests/filesys/base/syn-write
+	     2/ 2 tests/filesys/base/syn-remove
+
+	- Section summary.
+	     13/ 13 tests passed
+	     30/ 30 points subtotal
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+DETAILS OF tests/vm/page-parallel FAILURE:
+
+Kernel panic in run: PANIC at ../../userprog/exception.c:107 in kill(): Kernel bug - unexpected interrupt in kernel
+Call stack: 0xc002800a 0xc002ac0e 0xc002ace3 0xc0021d19 0xc0021e23 0xc0028061 0xc0028b9c 0xc002388d 0xc002d2b4 0xc002d334 0xc002d63f 0xc002d722 0xc002d7ed 0xc002ac8c 0xc0021d19 0xc0021e23 0x8048217 0x80480c5 0x8048741
+Translation of call stack:
+In kernel.o:
+0xc002800a: debug_panic (.../../lib/kernel/debug.c:38)
+0xc002ac0e: kill (.../userprog/exception.c:112)
+0xc002ace3: page_fault (.../userprog/exception.c:168)
+0xc0021d19: intr_handler (..../threads/interrupt.c:367)
+0xc0021e23: intr_entry (threads/intr-stubs.S:38)
+0xc0028061: list_remove (.../../lib/kernel/list.c:253)
+0xc0028b9c: list_pop_front (.../../lib/kernel/list.c:265)
+0xc002388d: malloc (..../../threads/malloc.c:149)
+0xc002d2b4: frame_add (...build/../../vm/frame.c:74)
+0xc002d334: frame_alloc (...build/../../vm/frame.c:40)
+0xc002d63f: load_file (.../build/../../vm/page.c:90)
+0xc002d722: page_load (...build/../../vm/page.c:151)
+0xc002d7ed: page_find_and_load (...build/../../vm/page.c:182)
+0xc002ac8c: page_fault (.../userprog/exception.c:159)
+0xc0021d19: intr_handler (..../threads/interrupt.c:367)
+0xc0021e23: intr_entry (threads/intr-stubs.S:38)
+In tests/vm/page-parallel:
+0x08048217: fail (...uild/../../tests/lib.c:41)
+0x080480c5: test_main (...sts/vm/page-parallel.c:20)
+0x08048741: random_bytes (...ild/../../lib/random.c:70)
+Translations of user virtual addresses above are based on a guess at
+the binary to use.  If this guess is incorrect, then those
+translations will be misleading.
+
+OUTPUT FROM tests/vm/page-parallel:
+
+Copying tests/vm/page-parallel to scratch partition...
+Copying tests/vm/child-linear to scratch partition...
+squish-pty bochs -q
+========================================================================
+                       Bochs x86 Emulator 2.4.1
+                Build from CVS snapshot on June 7, 2009
+========================================================================
+PiLo hda1
+Loading.........
+Kernel command line: -q -f extract run page-parallel
+Pintos booting with 4,096 kB RAM...
+383 pages available in kernel pool.
+383 pages available in user pool.
+Calibrating timer...  204,600 loops/s.
+hd97: 13,104 sectors (6 MB), model "BXHD00011", serial "Generic 1234"
+hd971: 147 sectors (73 kB), Pintos OS kernel (20)
+hd972: 4,096 sectors (2 MB), Pintos file system (21)
+hd973: 183 sectors (91 kB), Pintos scratch (22)
+hd974: 8,192 sectors (4 MB), Pintos swap (23)
+filesys: using hd972
+scratch: using hd973
+swap: using hd974
+Formatting file system...done.
+Boot complete.
+Extracting ustar archive from scratch device into file system...
+Putting 'page-parallel' into the file system...
+Putting 'child-linear' into the file system...
+Erasing ustar archive...
+Executing 'page-parallel':
+(page-parallel) begin
+(page-parallel) exec "child-linear"
+Page fault at 0x301067: not present error writing page in kernel context.
+child-linear: exit(-1)
+Interrupt 0x0e (#PF Page-Fault Exception) at eip=0xc0028061
+ cr2=00301067 error=00000002
+ eax=00301067 ebx=c010f30c ecx=00301067 edx=c0033e98
+ esi=00000004 edi=c0033e98 esp=00000001 ebp=c0110e14
+ cs=0008 ds=0010 es=0010 ss=3e90
+Kernel PANIC at ../../userprog/exception.c:107 in kill(): Kernel bug - unexpected interrupt in kernel
+Call stack: 0xc002800a 0xc002ac0e 0xc002ace3 0xc0021d19 0xc0021e23 0xc0028061 0xc0028b9c 0xc002388d 0xc002d2b4 0xc002d334 0xc002d63f 0xc002d722 0xc002d7ed 0xc002ac8c 0xc0021d19 0xc0021e23 0x8048217 0x80480c5 0x8048741.
+The `backtrace' program can make call stacks useful.
+Read "Backtraces" in the "Debugging Tools" chapter
+of the Pintos documentation for more information.
+Timer: 1788 ticks
+Thread: 30 idle ticks, 297 kernel ticks, 1461 user ticks
+hd972 (filesys): 102 reads, 372 writes
+hd973 (scratch): 182 reads, 2 writes
+hd974 (swap): 0 reads, 0 writes
+Console: 1824 characters output
+Keyboard: 0 keys pressed
+Exception: 151 page faults
+Powering off..
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+DETAILS OF tests/vm/page-merge-par FAILURE:
+
+Run produced no output at all
+
+OUTPUT FROM tests/vm/page-merge-par:
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+DETAILS OF tests/vm/page-merge-mm FAILURE:
+
+Kernel panic in run: PANIC at ../../userprog/exception.c:107 in kill(): Kernel bug - unexpected interrupt in kernel
+Call stack: 0xc002800a 0xc002ac0e 0xc002ace3 0xc0021d19 0xc0021e23 0xc0028061 0xc0028b9c 0xc002388d 0xc002d2b4 0xc002d334 0xc002d63f 0xc002d722 0xc002d7ed 0xc002ac8c 0xc0021d19 0xc0021e23 0x804851b 0x80480c9 0x8048300 0x8048086 0x8048a6a 0x8048a95
+Translation of call stack:
+In kernel.o:
+0xc002800a: debug_panic (.../../lib/kernel/debug.c:38)
+0xc002ac0e: kill (.../userprog/exception.c:112)
+0xc002ace3: page_fault (.../userprog/exception.c:168)
+0xc0021d19: intr_handler (..../threads/interrupt.c:367)
+0xc0021e23: intr_entry (threads/intr-stubs.S:38)
+0xc0028061: list_remove (.../../lib/kernel/list.c:253)
+0xc0028b9c: list_pop_front (.../../lib/kernel/list.c:265)
+0xc002388d: malloc (..../../threads/malloc.c:149)
+0xc002d2b4: frame_add (...build/../../vm/frame.c:74)
+0xc002d334: frame_alloc (...build/../../vm/frame.c:40)
+0xc002d63f: load_file (.../build/../../vm/page.c:90)
+0xc002d722: page_load (...build/../../vm/page.c:151)
+0xc002d7ed: page_find_and_load (...build/../../vm/page.c:182)
+0xc002ac8c: page_fault (.../userprog/exception.c:159)
+0xc0021d19: intr_handler (..../threads/interrupt.c:367)
+0xc0021e23: intr_entry (threads/intr-stubs.S:38)
+In tests/vm/page-merge-mm:
+0x0804851b: arc4_crypt (...ild/../../tests/arc4.c:49)
+0x080480c9: init (...ts/vm/parallel-merge.c:31)
+0x08048300: parallel_merge (...s/vm/parallel-merge.c:146)
+0x08048086: test_main (...ests/vm/page-merge-mm.c:7)
+0x08048a6a: main (...ild/../../tests/main.c:13)
+0x08048a95: _start (.../../../lib/user/entry.c:9)
+Translations of user virtual addresses above are based on a guess at
+the binary to use.  If this guess is incorrect, then those
+translations will be misleading.
+
+OUTPUT FROM tests/vm/page-merge-mm:
+
+Copying tests/vm/page-merge-mm to scratch partition...
+Copying tests/vm/child-qsort-mm to scratch partition...
+squish-pty bochs -q
+========================================================================
+                       Bochs x86 Emulator 2.4.1
+                Build from CVS snapshot on June 7, 2009
+========================================================================
+PiLo hda1
+Loading.........
+Kernel command line: -q -f extract run page-merge-mm
+Pintos booting with 4,096 kB RAM...
+383 pages available in kernel pool.
+383 pages available in user pool.
+Calibrating timer...  204,600 loops/s.
+hd97: 13,104 sectors (6 MB), model "BXHD00011", serial "Generic 1234"
+hd971: 147 sectors (73 kB), Pintos OS kernel (20)
+hd972: 4,096 sectors (2 MB), Pintos file system (21)
+hd973: 193 sectors (96 kB), Pintos scratch (22)
+hd974: 8,192 sectors (4 MB), Pintos swap (23)
+filesys: using hd972
+scratch: using hd973
+swap: using hd974
+Formatting file system...done.
+Boot complete.
+Extracting ustar archive from scratch device into file system...
+Putting 'page-merge-mm' into the file system...
+Putting 'child-qsort-mm' into the file system...
+Erasing ustar archive...
+Executing 'page-merge-mm':
+(page-merge-mm) begin
+(page-merge-mm) init
+Page fault at 0x307067: not present error writing page in kernel context.
+page-merge-mm: exit(-1)
+Interrupt 0x0e (#PF Page-Fault Exception) at eip=0xc0028061
+ cr2=00307067 error=00000002
+ eax=00307067 ebx=c010a32c ecx=00307067 edx=c0033e98
+ esi=00000004 edi=c0033e98 esp=00000001 ebp=c010be14
+ cs=0008 ds=0010 es=0010 ss=3e90
+Kernel PANIC at ../../userprog/exception.c:107 in kill(): Kernel bug - unexpected interrupt in kernel
+Call stack: 0xc002800a 0xc002ac0e 0xc002ace3 0xc0021d19 0xc0021e23 0xc0028061 0xc0028b9c 0xc002388d 0xc002d2b4 0xc002d334 0xc002d63f 0xc002d722 0xc002d7ed 0xc002ac8c 0xc0021d19 0xc0021e23 0x804851b 0x80480c9 0x8048300 0x8048086 0x8048a6a 0x8048a95.
+The `backtrace' program can make call stacks useful.
+Read "Backtraces" in the "Debugging Tools" chapter
+of the Pintos documentation for more information.
+Timer: 1859 ticks
+Thread: 30 idle ticks, 304 kernel ticks, 1525 user ticks
+hd972 (filesys): 87 reads, 392 writes
+hd973 (scratch): 192 reads, 2 writes
+hd974 (swap): 0 reads, 0 writes
+Console: 1841 characters output
+Keyboard: 0 keys pressed
+Exception: 153 page faults
+Powering off..
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+DETAILS OF tests/vm/page-merge-stk FAILURE:
+
+run: TIMEOUT after 60 seconds of host CPU time
+
+OUTPUT FROM tests/vm/page-merge-stk:
+
+Copying tests/vm/page-merge-stk to scratch partition...
+Copying tests/vm/child-qsort to scratch partition...
+squish-pty bochs -q
+========================================================================
+                       Bochs x86 Emulator 2.4.1
+                Build from CVS snapshot on June 7, 2009
+========================================================================
+PiLo hda1
+Loading.........
+Kernel command line: -q -f extract run page-merge-stk
+Pintos booting with 4,096 kB RAM...
+383 pages available in kernel pool.
+383 pages available in user pool.
+Calibrating timer...  204,600 loops/s.
+hd97: 13,104 sectors (6 MB), model "BXHD00011", serial "Generic 1234"
+hd971: 147 sectors (73 kB), Pintos OS kernel (20)
+hd972: 4,096 sectors (2 MB), Pintos file system (21)
+hd973: 193 sectors (96 kB), Pintos scratch (22)
+hd974: 8,192 sectors (4 MB), Pintos swap (23)
+filesys: using hd972
+scratch: using hd973
+swap: using hd974
+Formatting file system...done.
+Boot complete.
+Extracting ustar archive from scratch device into file system...
+Putting 'page-merge-stk' into the file system...
+Putting 'child-qsort' into the file system...
+Erasing ustar archive...
+Executing 'page-merge-stk':
+
+TIMEOUT after 60 seconds of host CPU time

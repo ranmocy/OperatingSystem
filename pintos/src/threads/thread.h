@@ -17,6 +17,9 @@
 #include <stdint.h>
 #include "synch.h"
 #include "filesys/file.h"
+#ifdef VM
+#include "vm/vm.h"
+#endif
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -124,6 +127,12 @@ struct thread
     struct list file_list;
     int fd;
     struct file* file;
+#endif
+
+#ifdef VM
+    struct hash page_table;
+    struct list mmap_list;
+    int mapid;
 #endif
 
     /* Owned by devices/timer.c. */
