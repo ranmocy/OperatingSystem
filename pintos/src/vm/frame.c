@@ -41,7 +41,6 @@ frame_alloc (enum palloc_flags flags, struct SP_entry *page_entry)
     } else {
         while (!frame) {
             frame = frame_evict (flags);
-            lock_release (&frame_table_lock);
         }
         if (!frame) {
             PANIC ("Frame evict failed. Swap is full!");
@@ -113,6 +112,7 @@ frame_evict (enum palloc_flags flags)
                 pagedir_clear_page (t->pagedir, page_entry->page);
                 palloc_free_page (frame_entry->frame);
                 free (frame_entry);
+                lock_release (&frame_table_lock);
                 return palloc_get_page (flags);
             }
         }
