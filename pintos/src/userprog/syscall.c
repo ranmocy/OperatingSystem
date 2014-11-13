@@ -437,7 +437,6 @@ syscall_handler (struct intr_frame *f)
             break;
         }
         case SYS_MMAP: { // 13, fd, addr
-            check_valid_pointer (p[2], false);
             f->eax = mmap ((int)p[1], (void *) p[2]);
             break;
         }
