@@ -417,11 +417,7 @@ syscall_handler (struct intr_frame *f)
         }
         case SYS_WRITE: { // 9, fd, *buffer, size
             check_valid_buffer (p[2], (unsigned)p[3], false);
-            if ((int)p[1] == 1) { // STDOUT
-                putbuf ((char *)p[2], (size_t)p[3]);
-            } else{
-                f->eax = write ((int)p[1], p[2], (unsigned)p[3]);
-            }
+            f->eax = write ((int)p[1], p[2], (unsigned)p[3]);
             break;
         }
         case SYS_SEEK: { // 10, fd, position
