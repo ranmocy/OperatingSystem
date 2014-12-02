@@ -674,6 +674,7 @@ bool b_tree_iter_next(struct b_tree_iter* iter){
 }
 
 off_t inode_read_at(struct inode *inode, void *buffer, off_t size, off_t offset){
+
 	sector_idx begin, end;
 	struct b_tree_iter iter;
 	off_t new_off, len;
@@ -690,8 +691,12 @@ off_t inode_read_at(struct inode *inode, void *buffer, off_t size, off_t offset)
 	begin = offset / BLOCK_SECTOR_SIZE;
 	end = DIV_ROUND_UP(offset + size, BLOCK_SECTOR_SIZE);
 
-	if (!b_tree_iter_begin(&iter, inode->sector, begin, end))
-		return byte_read;\
+	lock_acquire(&inode->lock);
+
+	if (!b_tree_iter_begin(&iter, inode->sector, begin, end)){
+		lock_release(&inode->lock);
+		return byte_read;
+	}
 	while(size>0){
 		size_t s;
 		new_off = ROUND_UP(offset, BLOCK_SECTOR_SIZE);
@@ -702,8 +707,10 @@ off_t inode_read_at(struct inode *inode, void *buffer, off_t size, off_t offset)
 		s = new_off - offset;
 		begin = offset/ BLOCK_SECTOR_SIZE;
 		if (begin == iter.ptr->data[iter.loc].idx + iter.ptr->size[iter.loc]){
-			if (!b_tree_iter_next(&iter))
+			if (!b_tree_iter_next(&iter)){
+				lock_release(&inode->lock);
 				return byte_read;
+			}
 		}
 		_buf = filesys_cache_block_get_read_only(iter.ptr->data[iter.loc].sector + begin - iter.ptr->data[iter.loc].idx);
 		memcpy(buffer, _buf + offset - begin*BLOCK_SECTOR_SIZE, s);
@@ -715,6 +722,8 @@ off_t inode_read_at(struct inode *inode, void *buffer, off_t size, off_t offset)
 	}
 	b_tree_iter_next(&iter);
 	ASSERT(iter.ptr == NULL);
+
+	lock_release(&inode->lock);
 	return byte_read;
 }
 
@@ -727,9 +736,13 @@ off_t inode_write_at(struct inode *inode, const void *buffer, off_t size, off_t 
 
 	if (inode->deny_write_cnt)
 		return 0;
+
+	lock_acquire(&inode->lock);
 	struct b_tree_node* root = (struct b_tree_node*)filesys_cache_block_get_read_only(inode->sector);
-	if (size <= 0)
+	if (size <= 0){
+		lock_release(&inode->lock);
 		return 0;
+	}
 	ASSERT(offset >= 0);
 	if (root->length < (size_t)(offset + size)){
 		set_dirty_flag(root);
@@ -740,8 +753,10 @@ off_t inode_write_at(struct inode *inode, const void *buffer, off_t size, off_t 
 	begin = offset / BLOCK_SECTOR_SIZE;
 	end = DIV_ROUND_UP(offset + size, BLOCK_SECTOR_SIZE);
 
-	if (!b_tree_iter_begin(&iter, inode->sector, begin, end))
-		return byte_read;\
+	if (!b_tree_iter_begin(&iter, inode->sector, begin, end)){
+		lock_release(&inode->lock);
+		return byte_read;
+	}
 	while(size>0){
 		size_t s;
 		new_off = ROUND_UP(offset, BLOCK_SECTOR_SIZE);
@@ -752,8 +767,10 @@ off_t inode_write_at(struct inode *inode, const void *buffer, off_t size, off_t 
 		s = new_off - offset;
 		begin = offset/ BLOCK_SECTOR_SIZE;
 		if (begin == iter.ptr->data[iter.loc].idx + iter.ptr->size[iter.loc]){
-			if (!b_tree_iter_next(&iter))
+			if (!b_tree_iter_next(&iter)){
+				lock_release(&inode->lock);
 				return byte_read;
+			}
 		}
 		_buf = filesys_cache_block_get_write(iter.ptr->data[iter.loc].sector + begin - iter.ptr->data[iter.loc].idx);
 		memcpy(_buf + offset - begin*BLOCK_SECTOR_SIZE, buffer, s);
@@ -765,6 +782,7 @@ off_t inode_write_at(struct inode *inode, const void *buffer, off_t size, off_t 
 	}
 	b_tree_iter_next(&iter);
 	ASSERT(iter.ptr == NULL);
+	lock_release(&inode->lock);
 	return byte_read;
 }
 

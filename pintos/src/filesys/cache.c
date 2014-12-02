@@ -8,7 +8,7 @@ void filesys_cache_init (void)
   list_init(&filesys_cache);
   lock_init(&filesys_cache_lock);
   filesys_cache_size = 0;
-  thread_create("filesys_cache_writeback", 0, thread_func_write_back, NULL);
+  //thread_create("filesys_cache_writeback", 0, thread_func_write_back, NULL);
 }
 
 struct cache_entry* block_in_cache (block_sector_t sector)
@@ -128,6 +128,9 @@ struct cache_entry* filesys_cache_block_evict (block_sector_t sector, bool dirty
 
 void filesys_cache_write_to_disk (bool halt)
 {
+  printf("========================================\n\
+    ===============SAVE==========================\n\
+    =============================================");
   lock_acquire(&filesys_cache_lock);
   struct list_elem *next, *e = list_begin(&filesys_cache);
   while (e != list_end(&filesys_cache))
@@ -139,12 +142,12 @@ void filesys_cache_write_to_disk (bool halt)
         cache_elem->accessed = false;
         continue;
       }
-      if (cache_elem->dirty && cache_elem->counter == 0)
+      if (cache_elem->dirty)
 	    {
 	      block_write (fs_device, cache_elem->sector, &cache_elem->block);
 	      cache_elem->dirty = false;
 	    }
-      if (halt && cache_elem->counter == 0)
+      if (halt)
 	    {
 	      list_remove(&cache_elem->elem);
 	      free(cache_elem);

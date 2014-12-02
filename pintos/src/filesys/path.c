@@ -49,6 +49,7 @@ struct file* path_goto(struct file* dir, const char* path){
 		}else
 			file_close(dir);
 		dir = file_open(inode);
+		path = next;
 		if (dir == NULL)
 			return NULL;
 	}
@@ -56,7 +57,7 @@ struct file* path_goto(struct file* dir, const char* path){
 
 char *path_split(char* path){
 	size_t i = strlen(path);
-	while (path[i]=='\0' || path[i]=='/' || i!=0)
+	while ((path[i]=='\0' || path[i]=='/') && i!=0)
 		i--;
 	while(path[i]!='/'&&i!=0)
 		i--;

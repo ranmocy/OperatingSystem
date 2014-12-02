@@ -40,6 +40,7 @@ void
 filesys_done (void) 
 {
   free_map_close ();
+  filesys_cache_write_to_disk(true);
 }
 
 /* Creates a file named NAME with the given INITIAL_SIZE.
@@ -89,7 +90,7 @@ filesys_mkdir(const char *name){
 
   if (dir != NULL 
       && free_map_allocate(1, &inode_sector)
-      && dir_create(inode_sector,inode_get_inumber(file_get_inode(dir)), 0)
+      && dir_create(inode_sector,inode_get_inumber(file_get_inode(dir)), 24)
       && dir_add(dir, fname, inode_sector))
     return true;
 
@@ -135,6 +136,10 @@ filesys_open (const char *name)
 bool
 filesys_remove (const char *name) 
 {
+          char buf[15];
+   bool success = false;
+  struct inode* inode;
+  struct file *f;
   char path[PATH_SIZE_LIMIT + 1], *fname;
   struct file *dir;
   if (strlen(name) > PATH_SIZE_LIMIT)
@@ -146,13 +151,23 @@ filesys_remove (const char *name)
     dir = path_goto(dir, path);
   else
     fname = path;
-  bool success = dir != NULL && dir_remove (dir, fname);
+  if (dir != NULL )
+    if (dir_lookup(dir, fname,&inode)){
+      f = file_open(inode);
+      if (f){
+        if (filesys_isdir(f)){
+          if(!dir_readdir(f,buf) && file_get_inode(f) != file_get_inode(thread_current()->cur_dir))
+            success = dir_remove (dir, fname);
+        }else
+          success = dir_remove (dir, fname);
+        file_close(f);
+      }
+    }
+     
   file_close (dir); 
-
   return success;
 }
 
-
 /* Formats the file system. */
 static void
 do_format (void)

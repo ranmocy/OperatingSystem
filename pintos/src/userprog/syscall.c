@@ -29,7 +29,6 @@ bool remove(const char *file);
 int open(const char *file);
 
 
-struct lock filesys_lock;
 
 struct process_file_record {
 	struct file *file;
@@ -41,10 +40,24 @@ struct process_file_record {
 void
 syscall_init(void)
 {
-	lock_init(&filesys_lock);
 	intr_register_int(0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
+
+static bool
+chdir(const char* path);
+
+static bool
+mkdir(const char* path);
+
+static bool
+readdir(int fd, char *name);
+
+static bool
+isdir(int fd);
+
+static int
+inumber(int fd);
 int arg_count[] = {0, 1, 1, 1, 2, 1, 1, 1, 3, 3, 2, 1, 1};
 
 static void
@@ -107,10 +120,54 @@ syscall_handler(struct intr_frame *f)
 	case SYS_EXEC:
 		f->eax = process_execute(vaddr_to_phyaddr((void*)p[1]));
 		break;
+	case SYS_CHDIR:               
+		f->eax = chdir((const char*)p[1]);
+		break;
+    case SYS_MKDIR:                  
+		f->eax = mkdir((const char*)vaddr_to_phyaddr(p[1]));
+		break;
+    case SYS_READDIR:              
+		f->eax = readdir((int)p[1], (char*)p[2]);
+		break;
+    case SYS_ISDIR:                 
+		f->eax = isdir((int)p[1]);
+		break;
+    case SYS_INUMBER:            
+		f->eax = inumber((int)p[1]);
+		break;
 	default:
 		printf("Oops\n");
 		thread_exit();
 	}
+}
+
+static bool
+chdir(const char* path){
+ struct file* f = path_goto(thread_current()->cur_dir, path);
+ if (f==NULL)
+ 	return false;
+ thread_current()->cur_dir = f;
+ return true;
+}
+
+static bool
+mkdir(const char* path){
+	return filesys_mkdir(path);
+}
+
+static bool
+readdir(int fd, char *name){
+	return dir_readdir(process_get_file(fd), name);
+}
+
+static bool
+isdir(int fd){
+	return filesys_isdir(process_get_file(fd));
+}
+
+static int
+inumber(int fd){
+	return inode_get_inumber(file_get_inode(process_get_file(fd)));
 }
 
 static void
@@ -149,31 +206,24 @@ syscall_exit(int rcode){
 
 bool create(const char *file, unsigned initial_size)
 {
-	lock_acquire(&filesys_lock);
 	bool success = filesys_create(file, initial_size);
-	lock_release(&filesys_lock);
 	return success;
 }
 
 bool remove(const char *file)
 {
-	lock_acquire(&filesys_lock);
 	bool success = filesys_remove(file);
-	lock_release(&filesys_lock);
 	return success;
 }
 
 int open(const char *file)
 {
-	lock_acquire(&filesys_lock);
 	struct file *f = filesys_open(file);
 	if (!f)
 	{
-		lock_release(&filesys_lock);
 		return ERROR;
 	}
 	int fd = process_add_file(f);
-	lock_release(&filesys_lock);
 	return fd;
 }
 
@@ -190,15 +240,12 @@ int process_add_file(struct file *f)
 
 int filesize(int fd)
 {
-	lock_acquire(&filesys_lock);
 	struct file *f = process_get_file(fd);
 	if (!f)
 	{
-		lock_release(&filesys_lock);
 		return ERROR;
 	}
 	int size = file_length(f);
-	lock_release(&filesys_lock);
 	return size;
 }
 
@@ -214,15 +261,12 @@ int read(int fd, void *buffer, unsigned size)
 		}
 		return size;
 	}
-	lock_acquire(&filesys_lock);
 	struct file *f = process_get_file(fd);
 	if (!f)
 	{
-		lock_release(&filesys_lock);
 		return ERROR;
 	}
 	int bytes = file_read(f, buffer, size);
-	lock_release(&filesys_lock);
 	return bytes;
 }
 
@@ -236,15 +280,12 @@ int write(int fd, const void *buffer, unsigned size)
 		putbuf(buffer, size);
 		return size;
 	}
-	lock_acquire(&filesys_lock);
 	struct file *f = process_get_file(fd);
 	if (!f)
 	{
-		lock_release(&filesys_lock);
 		return ERROR;
 	}
 	int bytes = file_write(f, buffer, size);
-	lock_release(&filesys_lock);
 	return bytes;
 }
 
@@ -297,36 +338,28 @@ void process_close_file(int fd)
 
 void seek(int fd, unsigned position)
 {
-	lock_acquire(&filesys_lock);
 	struct file *f = process_get_file(fd);
 	if (!f)
 	{
-		lock_release(&filesys_lock);
 		return;
 	}
 	file_seek(f, position);
-	lock_release(&filesys_lock);
 }
 
 unsigned tell(int fd)
 {
-	lock_acquire(&filesys_lock);
 	struct file *f = process_get_file(fd);
 	if (!f)
 	{
-		lock_release(&filesys_lock);
 		return ERROR;
 	}
 	off_t offset = file_tell(f);
-	lock_release(&filesys_lock);
 	return offset;
 }
 
 void close(int fd)
 {
-	lock_acquire(&filesys_lock);
 	process_close_file(fd);
-	lock_release(&filesys_lock);
 }
 
 void check_valid_buffer(void* buffer, unsigned size)
