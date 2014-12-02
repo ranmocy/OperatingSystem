@@ -2,10 +2,13 @@
 #include <debug.h>
 #include <stdio.h>
 #include <string.h>
+#include "threads/thread.h"
 #include "filesys/file.h"
 #include "filesys/free-map.h"
 #include "filesys/inode.h"
 #include "filesys/directory.h"
+#include "filesys/cache.h"
+#include "filesys/path.h"
 
 /* Partition that contains the file system. */
 struct block *fs_device;
@@ -21,6 +24,7 @@ filesys_init (bool format)
   if (fs_device == NULL)
     PANIC ("No file system device found, can't initialize file system.");
 
+  filesys_cache_init();
   inode_init ();
   free_map_init ();
 
@@ -45,17 +49,54 @@ filesys_done (void)
 bool
 filesys_create (const char *name, off_t initial_size) 
 {
+  char path[PATH_SIZE_LIMIT + 1], *fname;
   block_sector_t inode_sector = 0;
-  struct dir *dir = dir_open_root ();
+  struct file *dir;
+  if (strlen(name) > PATH_SIZE_LIMIT)
+    return false;
+  strlcpy(path, name,PATH_SIZE_LIMIT);
+  fname = path_split(path);
+  dir = file_reopen(thread_current()->cur_dir);
+  if (fname != NULL)
+    dir = path_goto(dir, path);
+  else
+    fname = path;
   bool success = (dir != NULL
                   && free_map_allocate (1, &inode_sector)
-                  && inode_create (inode_sector, initial_size)
-                  && dir_add (dir, name, inode_sector));
+                  && inode_create (inode_sector, initial_size, TYPE_FILE)
+                  && dir_add (dir, fname, inode_sector));
   if (!success && inode_sector != 0) 
     free_map_release (inode_sector, 1);
-  dir_close (dir);
+  file_close (dir);
 
   return success;
+}
+
+bool
+filesys_mkdir(const char *name){
+  char path[PATH_SIZE_LIMIT + 1], *fname;
+  block_sector_t inode_sector = NULL_SECTOR;
+  struct file *dir;
+  if (strlen(name) > PATH_SIZE_LIMIT)
+    return false;
+  strlcpy(path, name,PATH_SIZE_LIMIT);
+  fname = path_split(path);
+  dir = file_reopen(thread_current()->cur_dir);
+  if (fname != NULL)
+    dir = path_goto(dir, path);
+  else
+    fname = path;
+
+  if (dir != NULL 
+      && free_map_allocate(1, &inode_sector)
+      && dir_create(inode_sector,inode_get_inumber(file_get_inode(dir)), 0)
+      && dir_add(dir, fname, inode_sector))
+    return true;
+
+  if (inode_sector!=NULL_SECTOR)
+    free_map_release(inode_sector,1);
+  return false;
+
 }
 
 /* Opens the file with the given NAME.
@@ -66,12 +107,23 @@ filesys_create (const char *name, off_t initial_size)
 struct file *
 filesys_open (const char *name)
 {
-  struct dir *dir = dir_open_root ();
+  char path[PATH_SIZE_LIMIT + 1], *fname;
+  struct file *dir;
+  if (strlen(name) > PATH_SIZE_LIMIT)
+    return false;
+  strlcpy(path, name,PATH_SIZE_LIMIT);
+  fname = path_split(path);
+  dir = file_reopen(thread_current()->cur_dir);
+  if (fname != NULL)
+    dir = path_goto(dir, path);
+  else
+    fname = path;
+
   struct inode *inode = NULL;
 
   if (dir != NULL)
-    dir_lookup (dir, name, &inode);
-  dir_close (dir);
+    dir_lookup (dir, fname, &inode);
+  file_close (dir);
 
   return file_open (inode);
 }
@@ -83,12 +135,23 @@ filesys_open (const char *name)
 bool
 filesys_remove (const char *name) 
 {
-  struct dir *dir = dir_open_root ();
-  bool success = dir != NULL && dir_remove (dir, name);
-  dir_close (dir); 
+  char path[PATH_SIZE_LIMIT + 1], *fname;
+  struct file *dir;
+  if (strlen(name) > PATH_SIZE_LIMIT)
+    return false;
+  strlcpy(path, name,PATH_SIZE_LIMIT);
+  fname = path_split(path);
+  dir = file_reopen(thread_current()->cur_dir);
+  if (fname != NULL)
+    dir = path_goto(dir, path);
+  else
+    fname = path;
+  bool success = dir != NULL && dir_remove (dir, fname);
+  file_close (dir); 
 
   return success;
 }
+
 
 /* Formats the file system. */
 static void
@@ -96,8 +159,12 @@ do_format (void)
 {
   printf ("Formatting file system...");
   free_map_create ();
-  if (!dir_create (ROOT_DIR_SECTOR, 16))
+  if (!dir_create (ROOT_DIR_SECTOR, ROOT_DIR_SECTOR, 16))
     PANIC ("root directory creation failed");
   free_map_close ();
   printf ("done.\n");
+}
+
+bool filesys_isdir(const struct file* f){
+  return inode_get_flag(file_get_inode(f)) == TYPE_DIR;
 }

@@ -124,7 +124,9 @@ main (void)
   /* Initialize file system. */
   ide_init ();
   locate_block_devices ();
+  free(calloc (1, 32));
   filesys_init (format_filesys);
+  thread_current()->cur_dir = dir_open_root();
 #endif
 
   printf ("Boot complete.\n");

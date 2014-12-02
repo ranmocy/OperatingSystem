@@ -1,15 +1,19 @@
 #ifndef FILESYS_FILE_H
 #define FILESYS_FILE_H
 
+#include <stdbool.h>
 #include "filesys/off_t.h"
+#include "devices/block.h"
 
 struct inode;
+
+bool file_create(block_sector_t sector, off_t size);
 
 /* Opening and closing files. */
 struct file *file_open (struct inode *);
 struct file *file_reopen (struct file *);
 void file_close (struct file *);
-struct inode *file_get_inode (struct file *);
+struct inode *file_get_inode (const struct file *);
 
 /* Reading and writing. */
 off_t file_read (struct file *, void *, off_t);

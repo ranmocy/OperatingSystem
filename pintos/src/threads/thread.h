@@ -16,7 +16,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "synch.h"
-#include "filesys/file.h"
+#include "filesys/filesys.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -124,6 +124,7 @@ struct thread
 	struct list file_list;
 	int fd;
 	struct file* file;
+  struct file* cur_dir;
 #endif
 
     /* Owned by devices/timer.c. */

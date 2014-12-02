@@ -99,6 +99,7 @@ start_process (void *arg_)
   // build relationship
   t = thread_current();
   t->parent = proc_arg->parent;
+  t->cur_dir = file_reopen(proc_arg->parent->cur_dir);
   lock_acquire(&t->parent->children_lock);
   list_push_back(&t->parent->children, &t->child_elem);
   lock_release(&t->parent->children_lock); 

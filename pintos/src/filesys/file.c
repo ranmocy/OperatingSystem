@@ -1,4 +1,5 @@
 #include "filesys/file.h"
+#include "filesys/filesys.h"
 #include <debug.h>
 #include "filesys/inode.h"
 #include "threads/malloc.h"
@@ -11,13 +12,20 @@ struct file
     bool deny_write;            /* Has file_deny_write() been called? */
   };
 
+bool file_create(block_sector_t sector, off_t size){
+  return inode_create (sector, size, TYPE_FILE);
+}
+
 /* Opens a file for the given INODE, of which it takes ownership,
    and returns the new file.  Returns a null pointer if an
    allocation fails or if INODE is null. */
 struct file *
 file_open (struct inode *inode) 
 {
-  struct file *file = calloc (1, sizeof *file);
+
+  struct file *file;
+
+  file = calloc (1, sizeof *file);
   if (inode != NULL && file != NULL)
     {
       file->inode = inode;
@@ -55,7 +63,7 @@ file_close (struct file *file)
 
 /* Returns the inode encapsulated by FILE. */
 struct inode *
-file_get_inode (struct file *file) 
+file_get_inode (const struct file *file) 
 {
   return file->inode;
 }
