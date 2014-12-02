@@ -1,0 +1,243 @@
+---- GROUP ----
+
+>> Fill in the names and email addresses of your group members.
+
+Hao Chen
+Kaiming Yang 
+Wanzhang Sheng
+
+
+		     INDEXED AND EXTENSIBLE FILES
+		     ============================
+
+
+			    SUBDIRECTORIES
+			    ==============
+
+---- DATA STRUCTURES ----
+
+>> B1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+We use a B-tree to implement the file system
+
+In the thread struct in thread.c:
+
+  struct dir* cwd; // The current working directory for a thread
+
+
+---- SYNCHRONIZATION ----
+
+>> B2: How do you prevent races on directory entries?  For example,
+>> only one of two simultaneous attempts to remove a single file
+>> should succeed, as should only one of two simultaneous attempts to
+>> create a file with the same name, and so on.
+
+All directory operations are locked via the directory's inode. Thus,
+adding or removing from a directory requires the inode lock. Therefore, a
+file can only be removed once and a file will only be created with an
+equivalent name once.
+
+>> B3: Does your implementation allow a directory to be removed if it
+>> is open by a process or if it is in use as a process's current
+>> working directory?  If so, what happens to that process's future
+>> file system operations?  If not, how do you prevent it?
+
+No, if any process is using a directory, it cannot be removed. We prevent
+this by making sure the inode's open attribute.
+
+
+			     BUFFER CACHE
+			     ============
+
+---- DATA STRUCTURES ----
+
+>> C1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+In cache.h:
+
+struct list filesys_cache;           // The buffer cache
+uint32_t filesys_cache_size;         // The number of elements in the cache,
+                                     // limited to 64
+struct lock filesys_cache_lock;      // Lock for the buffer cache
+
+struct cache_entry {                 // An entry in the buffer cache
+  uint8_t block[BLOCK_SECTOR_SIZE];  // The data read from disk
+  block_sector_t sector;             // The sector on disk where the data resides
+  bool dirty;                        // If the data has been written to
+  bool accessed;                     // If the data has been accessed
+  int counter;                       // Number of threads reading this entry
+  struct list_elem elem;             // List element in the buffer cache
+};
+
+---- ALGORITHMS ----
+
+>> C2: Describe how your cache replacement algorithm chooses a cache
+>> block to evict.
+
+It is similar to the physical memory frame eviction algorithm. Iterating
+through the cache:
+1) If an entry has counter > 0, it is skipped.
+2) If an entry has been accessed, its accessed boolean is switched to
+false. Everytime we evict the buffer without recently use.
+3) The entry's variables are changed to reflect the new entry and the new
+data is loaded from disk.
+
+>> C3: Implementation of write-behind.
+
+Iterating through the cache, if an entry is dirty, it is written back to
+disk and its dirty boolean is switched to false. This is done at
+system halt. 
+
+---- SYNCHRONIZATION ----
+
+>> C4: When one process is actively reading or writing data in a
+>> buffer cache block, how are other processes prevented from evicting
+>> that block?
+
+We add a file read lock and a file write lock in the inode to avoid 
+race condition
+
+We also use a cache lock to avoid the race condition happened during 
+evict
+
+
+
+			   Problem left
+			   ================
+
+Some of the test doesn't pass. Here is the result.
+pass tests/filesys/extended/syn-rw-persistence
+pass tests/userprog/args-none
+pass tests/userprog/args-single
+pass tests/userprog/args-multiple
+pass tests/userprog/args-many
+pass tests/userprog/args-dbl-space
+pass tests/userprog/sc-bad-sp
+pass tests/userprog/sc-bad-arg
+pass tests/userprog/sc-boundary
+pass tests/userprog/sc-boundary-2
+pass tests/userprog/halt
+pass tests/userprog/exit
+pass tests/userprog/create-normal
+pass tests/userprog/create-empty
+pass tests/userprog/create-null
+pass tests/userprog/create-bad-ptr
+pass tests/userprog/create-long
+pass tests/userprog/create-exists
+pass tests/userprog/create-bound
+pass tests/userprog/open-normal
+pass tests/userprog/open-missing
+pass tests/userprog/open-boundary
+FAIL tests/userprog/open-empty
+pass tests/userprog/open-null
+pass tests/userprog/open-bad-ptr
+pass tests/userprog/open-twice
+pass tests/userprog/close-normal
+pass tests/userprog/close-twice
+pass tests/userprog/close-stdin
+pass tests/userprog/close-stdout
+pass tests/userprog/close-bad-fd
+pass tests/userprog/read-normal
+pass tests/userprog/read-bad-ptr
+pass tests/userprog/read-boundary
+pass tests/userprog/read-zero
+pass tests/userprog/read-stdout
+pass tests/userprog/read-bad-fd
+pass tests/userprog/write-normal
+pass tests/userprog/write-bad-ptr
+pass tests/userprog/write-boundary
+pass tests/userprog/write-zero
+pass tests/userprog/write-stdin
+pass tests/userprog/write-bad-fd
+pass tests/userprog/exec-once
+pass tests/userprog/exec-arg
+pass tests/userprog/exec-multiple
+pass tests/userprog/exec-missing
+pass tests/userprog/exec-bad-ptr
+pass tests/userprog/wait-simple
+pass tests/userprog/wait-twice
+pass tests/userprog/wait-killed
+pass tests/userprog/wait-bad-pid
+pass tests/userprog/multi-recurse
+pass tests/userprog/multi-child-fd
+pass tests/userprog/rox-simple
+pass tests/userprog/rox-child
+pass tests/userprog/rox-multichild
+pass tests/userprog/bad-read
+pass tests/userprog/bad-write
+pass tests/userprog/bad-read2
+pass tests/userprog/bad-write2
+pass tests/userprog/bad-jump
+pass tests/userprog/bad-jump2
+pass tests/filesys/base/lg-create
+pass tests/filesys/base/lg-full
+pass tests/filesys/base/lg-random
+pass tests/filesys/base/lg-seq-block
+pass tests/filesys/base/lg-seq-random
+pass tests/filesys/base/sm-create
+pass tests/filesys/base/sm-full
+pass tests/filesys/base/sm-random
+pass tests/filesys/base/sm-seq-block
+pass tests/filesys/base/sm-seq-random
+pass tests/filesys/base/syn-read
+pass tests/filesys/base/syn-remove
+pass tests/filesys/base/syn-write
+pass tests/filesys/extended/dir-empty-name
+pass tests/filesys/extended/dir-mk-tree
+pass tests/filesys/extended/dir-mkdir
+pass tests/filesys/extended/dir-open
+pass tests/filesys/extended/dir-over-file
+FAIL tests/filesys/extended/dir-rm-cwd
+pass tests/filesys/extended/dir-rm-parent
+pass tests/filesys/extended/dir-rm-root
+FAIL tests/filesys/extended/dir-rm-tree
+pass tests/filesys/extended/dir-rmdir
+pass tests/filesys/extended/dir-under-file
+FAIL tests/filesys/extended/dir-vine
+pass tests/filesys/extended/grow-create
+pass tests/filesys/extended/grow-dir-lg
+pass tests/filesys/extended/grow-file-size
+pass tests/filesys/extended/grow-root-lg
+pass tests/filesys/extended/grow-root-sm
+pass tests/filesys/extended/grow-seq-lg
+pass tests/filesys/extended/grow-seq-sm
+pass tests/filesys/extended/grow-sparse
+pass tests/filesys/extended/grow-tell
+pass tests/filesys/extended/grow-two-files
+pass tests/filesys/extended/syn-rw
+pass tests/filesys/extended/dir-empty-name-persistence
+pass tests/filesys/extended/dir-mk-tree-persistence
+pass tests/filesys/extended/dir-mkdir-persistence
+pass tests/filesys/extended/dir-open-persistence
+pass tests/filesys/extended/dir-over-file-persistence
+FAIL tests/filesys/extended/dir-rm-cwd-persistence
+pass tests/filesys/extended/dir-rm-parent-persistence
+pass tests/filesys/extended/dir-rm-root-persistence
+FAIL tests/filesys/extended/dir-rm-tree-persistence
+pass tests/filesys/extended/dir-rmdir-persistence
+pass tests/filesys/extended/dir-under-file-persistence
+FAIL tests/filesys/extended/dir-vine-persistence
+pass tests/filesys/extended/grow-create-persistence
+pass tests/filesys/extended/grow-dir-lg-persistence
+pass tests/filesys/extended/grow-file-size-persistence
+pass tests/filesys/extended/grow-root-lg-persistence
+pass tests/filesys/extended/grow-root-sm-persistence
+pass tests/filesys/extended/grow-seq-lg-persistence
+pass tests/filesys/extended/grow-seq-sm-persistence
+pass tests/filesys/extended/grow-sparse-persistence
+pass tests/filesys/extended/grow-tell-persistence
+pass tests/filesys/extended/grow-two-files-persistence
+pass tests/filesys/extended/syn-rw-persistence
+
+There maybe several reasons cause that problem.
+
+1) when the file system was done it will ask the cache write all the 
+data into disk. But maybe there is some inode information in the buffer
+left because of race condition
+
+2)the way we write the buffer back to the disk may not work as we expect.
+The thread may stopped before all the data write into the disk
