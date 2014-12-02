@@ -128,9 +128,6 @@ struct cache_entry* filesys_cache_block_evict (block_sector_t sector, bool dirty
 
 void filesys_cache_write_to_disk (bool halt)
 {
-  printf("========================================\n\
-    ===============SAVE==========================\n\
-    =============================================");
   lock_acquire(&filesys_cache_lock);
   struct list_elem *next, *e = list_begin(&filesys_cache);
   while (e != list_end(&filesys_cache))

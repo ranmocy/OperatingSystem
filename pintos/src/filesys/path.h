@@ -4,4 +4,4 @@
 
 struct file* path_goto(struct file* dir, const char* path);
 
-char *path_split(char* path);
+bool path_split(char*,char*);

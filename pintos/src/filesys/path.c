@@ -34,7 +34,7 @@ struct file* path_goto(struct file* dir, const char* path){
 		}
 		memcpy(name_buf, path, next - path);
 		name_buf[next - path] = '\0';
-
+		path = next;
 		if (!strcmp(name_buf,"."))
 			continue;
 		if (!strcmp(name_buf,"..")){
@@ -49,20 +49,35 @@ struct file* path_goto(struct file* dir, const char* path){
 		}else
 			file_close(dir);
 		dir = file_open(inode);
-		path = next;
+
 		if (dir == NULL)
 			return NULL;
 	}
 }
 
-char *path_split(char* path){
-	size_t i = strlen(path);
-	while ((path[i]=='\0' || path[i]=='/') && i!=0)
+bool path_split(char *path, char *fname){
+	size_t i = strlen(path), j;
+	if (!strcmp(path,"."))
+		return false;
+	while(true){
+		if (i == 0 || path[i-1]!='/')
+			break;
 		i--;
-	while(path[i]!='/'&&i!=0)
-		i--;
-	if (path[i]!='/')
-		return NULL;
-	path[i] = '\0';
-	return path + i + 1;
+	}
+	if (i == 0)
+		return false;
+	j = i;
+	while(true){
+		if (j == 0 || path[j-1]=='/')
+			break;
+		j--;
+	}
+
+	memcpy(fname, path + j, i-j);
+	fname[i-j] = '\0';
+	if (j == 0)
+		memcpy(path, ".", 2);
+	else
+		path[j]='\0'; 
+	return true;
 }

@@ -50,18 +50,16 @@ filesys_done (void)
 bool
 filesys_create (const char *name, off_t initial_size) 
 {
-  char path[PATH_SIZE_LIMIT + 1], *fname;
+  char path[PATH_SIZE_LIMIT + 1], fname[15];
   block_sector_t inode_sector = 0;
   struct file *dir;
   if (strlen(name) > PATH_SIZE_LIMIT)
     return false;
   strlcpy(path, name,PATH_SIZE_LIMIT);
-  fname = path_split(path);
-  dir = file_reopen(thread_current()->cur_dir);
-  if (fname != NULL)
-    dir = path_goto(dir, path);
-  else
-    fname = path;
+    if (!path_split(path, fname))
+      return false;
+  dir = path_goto(file_reopen(thread_current()->cur_dir),path);
+
   bool success = (dir != NULL
                   && free_map_allocate (1, &inode_sector)
                   && inode_create (inode_sector, initial_size, TYPE_FILE)
@@ -75,18 +73,16 @@ filesys_create (const char *name, off_t initial_size)
 
 bool
 filesys_mkdir(const char *name){
-  char path[PATH_SIZE_LIMIT + 1], *fname;
+  char path[PATH_SIZE_LIMIT + 1], fname[15];
   block_sector_t inode_sector = NULL_SECTOR;
   struct file *dir;
   if (strlen(name) > PATH_SIZE_LIMIT)
     return false;
   strlcpy(path, name,PATH_SIZE_LIMIT);
-  fname = path_split(path);
-  dir = file_reopen(thread_current()->cur_dir);
-  if (fname != NULL)
-    dir = path_goto(dir, path);
-  else
-    fname = path;
+  if (!path_split(path, fname))
+    return false;
+
+  dir = path_goto(file_reopen(thread_current()->cur_dir),path);
 
   if (dir != NULL 
       && free_map_allocate(1, &inode_sector)
@@ -108,17 +104,18 @@ filesys_mkdir(const char *name){
 struct file *
 filesys_open (const char *name)
 {
-  char path[PATH_SIZE_LIMIT + 1], *fname;
+  char path[PATH_SIZE_LIMIT + 1], fname[15];
   struct file *dir;
   if (strlen(name) > PATH_SIZE_LIMIT)
     return false;
   strlcpy(path, name,PATH_SIZE_LIMIT);
-  fname = path_split(path);
-  dir = file_reopen(thread_current()->cur_dir);
-  if (fname != NULL)
-    dir = path_goto(dir, path);
-  else
-    fname = path;
+  if (!path_split(path, fname))
+    if (path[0] == '.')
+      return file_reopen(thread_current()->cur_dir);
+    else
+      return dir_open_root();
+
+  dir = path_goto(file_reopen(thread_current()->cur_dir),path);
 
   struct inode *inode = NULL;
 
@@ -140,17 +137,15 @@ filesys_remove (const char *name)
    bool success = false;
   struct inode* inode;
   struct file *f;
-  char path[PATH_SIZE_LIMIT + 1], *fname;
+  char path[PATH_SIZE_LIMIT + 1], fname[15];
   struct file *dir;
   if (strlen(name) > PATH_SIZE_LIMIT)
     return false;
   strlcpy(path, name,PATH_SIZE_LIMIT);
-  fname = path_split(path);
-  dir = file_reopen(thread_current()->cur_dir);
-  if (fname != NULL)
-    dir = path_goto(dir, path);
-  else
-    fname = path;
+  if (!path_split(path, fname))
+    return false;
+
+  dir = path_goto(file_reopen(thread_current()->cur_dir),path);
   if (dir != NULL )
     if (dir_lookup(dir, fname,&inode)){
       f = file_open(inode);

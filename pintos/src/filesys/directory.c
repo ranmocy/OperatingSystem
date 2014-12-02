@@ -62,7 +62,7 @@ lookup (const struct file *dir, const char *name,
 
   for (ofs = sizeof(struct dir_disk); inode_read_at (file_get_inode(dir), &e, sizeof e, ofs) == sizeof e;
        ofs += sizeof e) 
-    if (e.inode_sector != NULL_SECTOR && !strcmp (name, e.name)) 
+    if (e.inode_sector != 0 && !strcmp (name, e.name)) 
       {
         if (ep != NULL)
           *ep = e;
@@ -133,7 +133,7 @@ dir_add (struct file *dir, const char *name, block_sector_t inode_sector)
      read due to something intermittent such as low memory. */
   for (ofs = sizeof(struct dir_disk); inode_read_at (file_get_inode(dir), &e, sizeof e, ofs) == sizeof e;
        ofs += sizeof e) 
-    if (e.inode_sector == NULL_SECTOR)
+    if (e.inode_sector == 0)
       break;
   /* Write slot. */
   strlcpy (e.name, name, sizeof e.name);
@@ -171,7 +171,7 @@ dir_remove (struct file *dir, const char *name)
     goto done;
 
   /* Erase directory entry. */
-  e.inode_sector = NULL_SECTOR;
+  e.inode_sector = 0;
   if (inode_write_at (file_get_inode(dir), &e, sizeof e, ofs) != sizeof e) 
     goto done;
 
@@ -195,10 +195,13 @@ dir_readdir (struct file *dir, char name[NAME_MAX + 1])
   if (!filesys_isdir(dir))
     return false;
 
+  if (file_tell(dir) == 0){
+    file_seek(dir, sizeof(struct dir_disk));
+  }
   while (inode_read_at (file_get_inode(dir), &e, sizeof e, file_tell(dir)) == sizeof e) 
     {
       file_seek(dir, file_tell(dir)+ sizeof e);
-      if (e.inode_sector != NULL_SECTOR)
+      if (e.inode_sector != 0)
         {
           strlcpy (name, e.name, NAME_MAX + 1);
           return true;
