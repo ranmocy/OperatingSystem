@@ -34,6 +34,7 @@ dir_create (block_sector_t sector, block_sector_t parent, size_t entry_cnt)
     return false;
   inode_write_at(inode, &dir, sizeof(struct dir_disk), 0);
   inode_close(inode);
+  return true;
 }
 
 /* Opens the root directory and returns a directory for it.
